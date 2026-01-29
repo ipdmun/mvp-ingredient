@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, AlertTriangle, Loader2 } from "lucide-react";
+import { Check, X, AlertTriangle, Loader2, Pencil, Trash2, Save } from "lucide-react";
 import { createBulkIngredientPrices } from "@/app/ingredients/actions";
 
 type MarketAnalysis = {
@@ -22,35 +22,68 @@ type Props = {
     isOpen: boolean;
     onClose: () => void;
     items: OCRItem[];
-    ingredients: { id: number; name: string }[]; // For matching (future use)
+    ingredients: { id: number; name: string }[];
 };
 
 export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredients }: Props) {
     const [processedItems, setProcessedItems] = useState<OCRItem[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editForm, setEditForm] = useState<Partial<OCRItem>>({});
 
     useEffect(() => {
         if (isOpen) {
             setProcessedItems(items);
+            setEditingIndex(null);
         }
     }, [isOpen, items]);
 
     if (!isOpen) return null;
 
+    const handleDelete = (index: number) => {
+        if (confirm("이 항목을 삭제하시겠습니까?")) {
+            const newItems = [...processedItems];
+            newItems.splice(index, 1);
+            setProcessedItems(newItems);
+        }
+    };
+
+    const startEdit = (index: number) => {
+        setEditingIndex(index);
+        setEditForm(processedItems[index]);
+    };
+
+    const cancelEdit = () => {
+        setEditingIndex(null);
+        setEditForm({});
+    };
+
+    const saveEdit = () => {
+        if (editingIndex === null) return;
+
+        const newItems = [...processedItems];
+        newItems[editingIndex] = {
+            ...newItems[editingIndex],
+            ...editForm,
+            price: Number(editForm.price) || 0 // Ensure price is a number
+        } as OCRItem;
+
+        setProcessedItems(newItems);
+        setEditingIndex(null);
+    };
+
     const handleSave = async () => {
+        if (processedItems.length === 0) {
+            alert("저장할 항목이 없습니다.");
+            return;
+        }
+
         setIsSaving(true);
         try {
-            // For MVP, map to a dummy ingredient ID or create a new one.
-            // In a real app, we'd match names to IDs.
-            // Here we just save assuming the user selected an existing ingredient.
-            // Since we don't have ingredient selection UI in this modal yet (simplified for MVP),
-            // we will simulate saving by just alerting for now, or finding a matching ingredient name in the list.
-
-            // Hack for MVP: Find ingredient by name or default to first one to avoid errors.
             const payload = processedItems.map(item => {
                 const match = ingredients.find(ing => ing.name === item.name) || ingredients[0];
                 return {
-                    ingredientId: match?.id || 1, // Fallback to ID 1 if no match
+                    ingredientId: match?.id || 1,
                     price: item.price,
                     unit: item.unit,
                     source: "영수증/장부"
@@ -74,7 +107,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-100 p-6">
                     <h2 className="text-xl font-bold text-gray-900">
-                        📸 인식 결과 확인 ({items.length}건)
+                        📸 인식 결과 확인 ({processedItems.length}건)
                     </h2>
                     <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100">
                         <X className="h-5 w-5 text-gray-500" />
@@ -83,39 +116,92 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
 
                 {/* Body (Scrollable) */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {processedItems.map((item, idx) => (
-                        <div key={idx} className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                            {/* Input Info */}
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">
-                                    {idx + 1}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-gray-900 text-lg">{item.name}</p>
-                                    <p className="text-sm text-gray-500">{item.price.toLocaleString()}원 / {item.unit}</p>
-                                </div>
-                            </div>
-
-                            {/* Market Analysis Badge */}
-                            <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
-                                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${item.marketAnalysis.status === 'BEST' ? 'bg-green-100 text-green-600' :
-                                    item.marketAnalysis.status === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                    {item.marketAnalysis.status === 'BEST' && <Check className="h-4 w-4" />}
-                                    {item.marketAnalysis.status === 'BAD' && <AlertTriangle className="h-4 w-4" />}
-                                    {item.marketAnalysis.status === 'GOOD' && <Check className="h-4 w-4" />}
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xs text-gray-500">{item.marketAnalysis.cheapestSource} 대비</p>
-                                    <p className={`font-bold text-sm ${item.marketAnalysis.status === 'BEST' ? 'text-green-600' :
-                                        item.marketAnalysis.status === 'BAD' ? 'text-red-600' : 'text-gray-600'
-                                        }`}>
-                                        {item.marketAnalysis.diff > 0 ? `+${item.marketAnalysis.diff.toLocaleString()}원` : `${item.marketAnalysis.diff.toLocaleString()}원`}
-                                    </p>
-                                </div>
-                            </div>
+                    {processedItems.length === 0 ? (
+                        <div className="text-center py-10 text-gray-500">
+                            모든 항목이 삭제되었습니다.
                         </div>
-                    ))}
+                    ) : (
+                        processedItems.map((item, idx) => (
+                            <div key={idx} className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                {editingIndex === idx ? (
+                                    // Edit Mode
+                                    <div className="flex flex-col gap-3">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <input
+                                                className="rounded-md border p-2 text-sm"
+                                                value={editForm.name || ""}
+                                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                                placeholder="상품명"
+                                            />
+                                            <input
+                                                className="rounded-md border p-2 text-sm"
+                                                value={editForm.unit || ""}
+                                                onChange={e => setEditForm({ ...editForm, unit: e.target.value })}
+                                                placeholder="단위"
+                                            />
+                                            <input
+                                                className="rounded-md border p-2 text-sm"
+                                                type="number"
+                                                value={editForm.price || ""}
+                                                onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })}
+                                                placeholder="가격"
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={cancelEdit} className="text-xs text-gray-500 underline">취소</button>
+                                            <button onClick={saveEdit} className="flex items-center gap-1 rounded bg-blue-600 px-3 py-1 text-xs text-white">
+                                                <Save className="h-3 w-3" /> 저장
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // View Mode
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900 text-lg">{item.name}</p>
+                                                <p className="text-sm text-gray-500">{item.price.toLocaleString()}원 / {item.unit}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            {/* Market Badge */}
+                                            <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+                                                <div className={`flex h-6 w-6 items-center justify-center rounded-full ${item.marketAnalysis.status === 'BEST' ? 'bg-green-100 text-green-600' :
+                                                        item.marketAnalysis.status === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                    {item.marketAnalysis.status === 'BEST' && <Check className="h-3 w-3" />}
+                                                    {item.marketAnalysis.status === 'BAD' && <AlertTriangle className="h-3 w-3" />}
+                                                    {item.marketAnalysis.status === 'GOOD' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] text-gray-500">{item.marketAnalysis.cheapestSource} 대비</p>
+                                                    <p className={`font-bold text-xs ${item.marketAnalysis.status === 'BEST' ? 'text-green-600' :
+                                                            item.marketAnalysis.status === 'BAD' ? 'text-red-600' : 'text-gray-600'
+                                                        }`}>
+                                                        {item.marketAnalysis.diff > 0 ? `+${item.marketAnalysis.diff.toLocaleString()}` : item.marketAnalysis.diff.toLocaleString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => startEdit(idx)} className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => handleDelete(idx)} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {/* Footer */}
@@ -128,7 +214,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                     </button>
                     <button
                         onClick={handleSave}
-                        disabled={isSaving}
+                        disabled={isSaving || processedItems.length === 0}
                         className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
                     >
                         {isSaving ? (
