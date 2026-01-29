@@ -95,7 +95,9 @@ export async function createIngredientPrice(
         data: {
             ingredientId,
             price,
+            // @ts-ignore
             totalPrice,
+            // @ts-ignore
             amount,
             unit,
             source,
@@ -108,7 +110,8 @@ export async function createIngredientPrice(
             where: { id: ingredientId },
         });
 
-        if (ingredient && ingredient.userId === session.user.id) {
+        if (ingredient && (ingredient as any).userId === session.user.id) {
+            // @ts-ignore
             await prisma.notification.create({
                 data: {
                     userId: session.user.id,
