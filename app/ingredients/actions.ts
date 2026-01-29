@@ -66,6 +66,8 @@ export async function createIngredientPrice(
     }
 
     const price = parseInt(formData.get("price") as string);
+    const totalPrice = formData.get("totalPrice") ? parseInt(formData.get("totalPrice") as string) : null;
+    const amount = formData.get("amount") ? parseFloat(formData.get("amount") as string) : null;
     const unit = formData.get("unit") as string;
     const source = formData.get("source") as string;
 
@@ -93,6 +95,8 @@ export async function createIngredientPrice(
         data: {
             ingredientId,
             price,
+            totalPrice,
+            amount,
             unit,
             source,
         },
@@ -194,7 +198,7 @@ export async function createBulkIngredientPrices(
             // 2. Save Price
             await createIngredientPrice(
                 ingredientId,
-                setFormData(item.price, item.unit, item.source)
+                setFormData(item.price, item.unit, item.source, item.originalPrice, item.amount)
             );
             successCount++;
         } catch (error) {
@@ -207,10 +211,12 @@ export async function createBulkIngredientPrices(
 }
 
 // Helper to create FormData for reusing createIngredientPrice logic
-function setFormData(price: number, unit: string, source: string) {
+function setFormData(price: number, unit: string, source: string, totalPrice?: number, amount?: number) {
     const formData = new FormData();
     formData.append("price", price.toString());
     formData.append("unit", unit);
     formData.append("source", source);
+    if (totalPrice) formData.append("totalPrice", totalPrice.toString());
+    if (amount) formData.append("amount", amount.toString());
     return formData;
 }

@@ -153,9 +153,16 @@ export default async function IngredientDetailPage(props: Props) {
 
                 {/* 오른쪽: 가격 비교 테이블 */}
                 <div>
-                    <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-                        <Clock className="h-5 w-5 text-gray-500" />
-                        가격 변동 기록
+                    <h3 className="mb-4 flex items-center justify-between gap-2 text-lg font-bold text-gray-900">
+                        <div className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-gray-500" />
+                            가격 변동 기록
+                        </div>
+                        {averagePrice && (
+                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
+                                이번 달 평균: {averagePrice.toLocaleString()}원
+                            </span>
+                        )}
                     </h3>
 
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -169,7 +176,8 @@ export default async function IngredientDetailPage(props: Props) {
                                     <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                                         <tr>
                                             <th className="px-6 py-4">출처</th>
-                                            <th className="px-6 py-4">가격</th>
+                                            <th className="px-6 py-4">단위당 가격</th>
+                                            <th className="px-6 py-4">구매 정보(총액)</th>
                                             <th className="px-6 py-4 text-right">기록일</th>
                                         </tr>
                                     </thead>
@@ -182,8 +190,15 @@ export default async function IngredientDetailPage(props: Props) {
                                                         {p.source}
                                                         {isLowest && <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">최저가</span>}
                                                     </td>
-                                                    <td className="px-6 py-4 text-gray-600">
+                                                    <td className="px-6 py-4 text-blue-600 font-bold">
                                                         {p.price.toLocaleString()}원
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-500">
+                                                        {p.totalPrice ? (
+                                                            <span>{p.totalPrice.toLocaleString()}원 ({p.amount}{p.unit})</span>
+                                                        ) : (
+                                                            <span className="text-gray-300">-</span>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right text-gray-400">
                                                         {p.recordedAt.toLocaleDateString()}
