@@ -14,8 +14,10 @@ type MarketAnalysis = {
 
 type OCRItem = {
     name: string;
-    price: number;
+    price: number; // Unit price (final calculated)
     unit: string;
+    amount?: number; // Total weight/count
+    originalPrice?: number; // Total price written
     marketAnalysis: MarketAnalysis;
 };
 
@@ -63,10 +65,20 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         if (editingIndex === null) return;
 
         const newItems = [...processedItems];
+        const updatedOriginalPrice = Number(editForm.originalPrice) || 0;
+        const updatedAmount = Number(editForm.amount) || 1;
+
+        // Recalculate unit price: Total / Amount
+        const finalUnitPrice = updatedOriginalPrice > 0
+            ? Math.round(updatedOriginalPrice / updatedAmount)
+            : (Number(editForm.price) || 0);
+
         newItems[editingIndex] = {
             ...newItems[editingIndex],
             ...editForm,
-            price: Number(editForm.price) || 0 // Ensure price is a number
+            originalPrice: updatedOriginalPrice,
+            amount: updatedAmount,
+            price: finalUnitPrice
         } as OCRItem;
 
         setProcessedItems(newItems);
@@ -123,35 +135,64 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                             <div key={idx} className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
                                 {editingIndex === idx ? (
                                     // Edit Mode
-                                    <div className="flex flex-col gap-3">
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <input
-                                                className="rounded-md border p-2 text-sm"
-                                                value={editForm.name || ""}
-                                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                                placeholder="상품명"
-                                            />
-                                            <input
-                                                className="rounded-md border p-2 text-sm"
-                                                value={editForm.unit || ""}
-                                                onChange={e => setEditForm({ ...editForm, unit: e.target.value })}
-                                                placeholder="단위"
-                                            />
-                                            <input
-                                                className="rounded-md border p-2 text-sm"
-                                                type="number"
-                                                value={editForm.price || ""}
-                                                onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })}
-                                                placeholder="가격"
-                                            />
+                                    <div className="flex flex-col gap-4 bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {/* Name Input */}
+                                            <div className="flex flex-col gap-1">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">상품명</label>
+                                                <input
+                                                    className="rounded-md border border-gray-200 p-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                                                    value={editForm.name || ""}
+                                                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                                    placeholder="예: 양파, 계란"
+                                                />
+                                            </div>
+
+                                            {/* Amount & Unit */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">수량/중량</label>
+                                                    <input
+                                                        className="rounded-md border border-gray-200 p-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                                                        type="number"
+                                                        value={editForm.amount || ""}
+                                                        onChange={e => setEditForm({ ...editForm, amount: Number(e.target.value) })}
+                                                        placeholder="21"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">단위</label>
+                                                    <input
+                                                        className="rounded-md border border-gray-200 p-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                                                        value={editForm.unit || ""}
+                                                        onChange={e => setEditForm({ ...editForm, unit: e.target.value })}
+                                                        placeholder="kg, 개, 망"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Original Price */}
+                                            <div className="flex flex-col gap-1 sm:col-span-2">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">적힌 총 가격 (원)</label>
+                                                <input
+                                                    className="rounded-md border border-gray-200 p-2 text-sm font-bold text-blue-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                                                    type="number"
+                                                    value={editForm.originalPrice || ""}
+                                                    onChange={e => setEditForm({ ...editForm, originalPrice: Number(e.target.value) })}
+                                                    placeholder="23000"
+                                                />
+                                                <p className="text-[10px] text-gray-400 mt-0.5 ml-1">* 중량에 맞춰 단위당 가격이 자동 계산됩니다.</p>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-end gap-2">
-                                            <button onClick={cancelEdit} className="text-xs text-gray-500 underline">취소</button>
-                                            <button onClick={saveEdit} className="flex items-center gap-1 rounded bg-blue-600 px-3 py-1 text-xs text-white">
-                                                <Save className="h-3 w-3" /> 저장
+
+                                        <div className="flex justify-end items-center gap-3 pt-2 border-t border-gray-50">
+                                            <button onClick={cancelEdit} className="text-xs text-gray-500 hover:text-gray-700 font-medium px-2 py-1">취소</button>
+                                            <button onClick={saveEdit} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm transition-all">
+                                                <Save className="h-3.5 w-3.5" /> 저장하기
                                             </button>
                                         </div>
                                     </div>
+
                                 ) : (
                                     // View Mode
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -160,8 +201,21 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                                 {getIngredientIcon(item.name)}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-gray-900 text-lg">{item.name}</p>
-                                                <p className="text-sm text-gray-500">{item.price.toLocaleString()}원 / {item.unit}</p>
+                                                <div className="flex items-baseline gap-2">
+                                                    <p className="font-bold text-gray-900 text-lg">{item.name}</p>
+                                                    {item.amount && (
+                                                        <span className="text-sm text-gray-500 font-normal">({item.amount}{item.unit})</span>
+                                                    )}
+                                                </div>
+                                                <div className="mt-0.5 space-y-0.5">
+                                                    {item.originalPrice ? (
+                                                        <p className="text-xs text-gray-400 font-medium">
+                                                            총 {item.originalPrice.toLocaleString()}원 → <span className="text-blue-600 font-bold">{item.price.toLocaleString()}원</span> <span className="text-[10px] text-gray-400 font-normal">({item.unit}당)</span>
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 font-medium">{item.price.toLocaleString()}원 / {item.unit}</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 

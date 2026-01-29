@@ -27,57 +27,54 @@ export async function POST(request: Request) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
         // 3. 가상 데이터 반환 (Bulk & Market Analysis)
+        // 사용자가 올린 사진 데이터에 맞춰 Mock 업데이트
         const mockItems = [
             {
-                name: "양파 (1.5kg)",
-                price: 4980,
-                unit: "망",
+                name: "양파",
+                originalPrice: 41000,
+                amount: 15,
+                unit: "kg",
+                price: Math.round(41000 / 15), // 단위당 가격 (2733원)
+                marketAnalysis: {
+                    cheapestSource: "식자재마트",
+                    price: 2500,
+                    status: "BAD",
+                    diff: 233
+                }
+            },
+            {
+                name: "무",
+                originalPrice: 23000,
+                amount: 21,
+                unit: "kg",
+                price: Math.round(23000 / 21), // 단위당 가격 (1095원)
                 marketAnalysis: {
                     cheapestSource: "쿠팡",
-                    price: 4500,
-                    status: "BAD", // 더 비쌈
-                    diff: 480
-                }
-            },
-            {
-                name: "판계란 (30구)",
-                price: 7900,
-                unit: "판",
-                marketAnalysis: {
-                    cheapestSource: "이마트몰",
-                    price: 8900,
-                    status: "BEST", // 더 저렴 (이득)
-                    diff: -1000
-                }
-            },
-            {
-                name: "무 (1개)",
-                price: 1500,
-                unit: "개",
-                marketAnalysis: {
-                    cheapestSource: "시장",
                     price: 1500,
-                    status: "GOOD", // 적정가
-                    diff: 0
+                    status: "BEST",
+                    diff: -405
                 }
             },
             {
-                name: "통마늘 (1kg)",
-                price: 12000,
+                name: "간마늘",
+                originalPrice: 12000,
+                amount: 5,
                 unit: "kg",
+                price: Math.round(12000 / 5), // 단위당 가격 (2400원)
                 marketAnalysis: {
                     cheapestSource: "노브랜드",
-                    price: 9900,
+                    price: 2100,
                     status: "BAD",
-                    diff: 2100
+                    diff: 300
                 }
             }
         ];
 
         return NextResponse.json({
             items: mockItems,
-            rawText: "양파 4980원\n계란 7900원\n무 1500원...",
+            rawText: "양파 15kg 41,000\n무 21kg 23,000\n진마늘 5kg 12,000",
         });
+
 
     } catch (error) {
         console.error("OCR Error:", error);

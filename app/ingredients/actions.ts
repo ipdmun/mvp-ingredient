@@ -32,8 +32,25 @@ export async function createIngredient(formData: FormData) {
 }
 
 export async function deleteIngredient(id: number) {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user?.id) {
+        throw new Error("Unauthorized");
+    }
+
+    // Related data must be deleted first because of foreign key constraints
+    await prisma.ingredientPrice.deleteMany({
+        where: { ingredientId: id },
+    });
+
     await prisma.ingredient.delete({
-        where: { id },
+        where: {
+            id,
+            // SECURITY: Ensure user can only delete their own ingredients
+            // If Prisma client isn't updated, we check after fetching or use raw if needed
+            // But for now, we'll follow the existing pattern and fix the lint if it persists
+            userId: session.user.id as any,
+        },
     });
 
     revalidatePath("/ingredients");
