@@ -104,15 +104,12 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
 
         setIsSaving(true);
         try {
-            const payload = processedItems.map(item => {
-                const match = ingredients.find(ing => ing.name === item.name) || ingredients[0];
-                return {
-                    ingredientId: match?.id || 1,
-                    price: item.price,
-                    unit: item.unit,
-                    source: "영수증/장부"
-                };
-            });
+            const payload = processedItems.map(item => ({
+                name: item.name,
+                price: item.price,
+                unit: item.unit,
+                source: "영수증/장부"
+            }));
 
             await createBulkIngredientPrices(payload);
             onClose();

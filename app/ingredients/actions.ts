@@ -135,7 +135,7 @@ export async function getIngredients() {
 
 export async function createBulkIngredientPrices(
     items: {
-        ingredientId: number;
+        name: string;
         price: number;
         unit: string;
         source: string;
@@ -150,13 +150,38 @@ export async function createBulkIngredientPrices(
 
     for (const item of items) {
         try {
+            // 1. Find or Create Ingredient
+            let ingredientId: number;
+
+            const existingIngredient = await prisma.ingredient.findFirst({
+                where: {
+                    userId: session.user.id,
+                    name: item.name,
+                },
+            });
+
+            if (existingIngredient) {
+                ingredientId = existingIngredient.id;
+            } else {
+                // Create new ingredient if not found
+                const newIngredient = await prisma.ingredient.create({
+                    data: {
+                        userId: session.user.id,
+                        name: item.name,
+                        unit: item.unit, // Use unit from OCR as default
+                    },
+                });
+                ingredientId = newIngredient.id;
+            }
+
+            // 2. Save Price
             await createIngredientPrice(
-                item.ingredientId,
+                ingredientId,
                 setFormData(item.price, item.unit, item.source)
             );
             successCount++;
         } catch (error) {
-            console.error(`Failed to save price for ingredient ${item.ingredientId}`, error);
+            console.error(`Failed to save price for ${item.name}`, error);
         }
     }
 
