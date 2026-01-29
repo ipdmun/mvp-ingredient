@@ -16,62 +16,61 @@ export default async function IngredientsPage() {
 
     const ingredients = await prisma.ingredient.findMany({
         where: {
-            userId: session.user.id,
+            userId: session.user.id as string,
         },
         include: {
             prices: {
                 orderBy: { recordedAt: "desc" },
-                take: 50, // 최근 50개면 충분 (평균가 계산용)
+                take: 50,
             },
         },
         orderBy: { createdAt: "desc" },
     });
 
     return (
-        <main style={{ padding: 20 }}>
-            <h1>Ingredients</h1>
+        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-bold tracking-tight text-gray-900">식자재 관리</h1>
+                <p className="text-gray-500">관리 중인 식자재를 추가하고 확인하세요.</p>
+            </div>
 
-            {/* 👇 추가 폼 */}
-            <form action={createIngredient} style={{ marginBottom: 20 }}>
-                <input
-                    name="name"
-                    placeholder="재료 이름 (예: 양파)"
-                    required
-                    style={{ marginRight: 10, padding: 5 }}
-                />
-                <input
-                    name="unit"
-                    placeholder="단위 (예: kg)"
-                    required
-                    style={{ marginRight: 10, padding: 5 }}
-                />
-                <button type="submit" style={{ padding: "5px 10px" }}>추가</button>
-            </form>
+            {/* 입력 폼 */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-gray-900">새 재료 추가하기</h2>
+                <form action={createIngredient} className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                        <input
+                            name="name"
+                            placeholder="재료 이름 (예: 양파)"
+                            required
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="w-full sm:w-24">
+                        <input
+                            name="unit"
+                            placeholder="단위 (kg)"
+                            required
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="rounded-md bg-blue-600 px-6 py-2 text-sm font-bold text-white hover:bg-blue-500 transition-colors"
+                    >
+                        추가
+                    </button>
+                </form>
+            </div>
 
-            {ingredients.length === 0 && (
-                <p>No ingredients yet.</p>
+            {/* 재료 리스트 (Analysis Components) */}
+            {ingredients.length === 0 ? (
+                <div className="rounded-2xl border-2 border-dashed border-gray-200 py-16 text-center">
+                    <p className="text-gray-500 italic">아직 등록된 식자재가 없습니다.</p>
+                </div>
+            ) : (
+                <IngredientList initialIngredients={ingredients as any} />
             )}
-
-            <ul>
-                {ingredients.map((item) => (
-                    <li key={item.id} style={{ marginBottom: 8 }}>
-                        <Link href={`/ingredients/${item.id}`}>
-                            {item.name} ({item.unit})
-                        </Link>
-
-                        {/* 👇 삭제 버튼 */}
-                        <form
-                            action={async () => {
-                                "use server";
-                                await deleteIngredient(item.id);
-                            }}
-                            style={{ display: "inline", marginLeft: 10 }}
-                        >
-                            <button type="submit">삭제</button>
-                        </form>
-                    </li>
-                ))}
-            </ul>
-        </main>
+        </div>
     );
 }

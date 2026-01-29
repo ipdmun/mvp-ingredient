@@ -51,10 +51,10 @@ export default async function IngredientDetailPage(props: Props) {
     let lowestMonthlyPrice = null;
 
     if (monthlyPrices.length > 0) {
-        const sum = monthlyPrices.reduce((acc, p) => acc + p.price, 0);
+        const sum = monthlyPrices.reduce((acc: number, p: any) => acc + p.price, 0);
         averagePrice = Math.round(sum / monthlyPrices.length);
         lowestMonthlyPrice = Math.min(
-            ...monthlyPrices.map((p) => p.price)
+            ...monthlyPrices.map((p: any) => p.price)
         );
     }
 

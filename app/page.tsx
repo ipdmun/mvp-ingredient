@@ -19,7 +19,13 @@ export default async function Home() {
 
   const ingredients = await prisma.ingredient.findMany({
     where: {
-      userId: session.user.id,
+      userId: session.user.id as string,
+    },
+    include: {
+      prices: {
+        orderBy: { recordedAt: "desc" },
+        take: 50,
+      },
     },
     orderBy: { createdAt: "desc" },
   });

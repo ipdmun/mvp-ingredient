@@ -216,7 +216,7 @@ function setFormData(price: number, unit: string, source: string, totalPrice?: n
     formData.append("price", price.toString());
     formData.append("unit", unit);
     formData.append("source", source);
-    if (totalPrice) formData.append("totalPrice", totalPrice.toString());
-    if (amount) formData.append("amount", amount.toString());
+    if (totalPrice !== undefined && totalPrice !== null) formData.append("totalPrice", totalPrice.toString());
+    if (amount !== undefined && amount !== null) formData.append("amount", amount.toString());
     return formData;
 }

@@ -268,23 +268,25 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                     >
                         취소
                     </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving || processedItems.length === 0}
-                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    >
-                        {isSaving ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                저장 중...
-                            </>
-                        ) : (
-                            <>
-                                <Check className="h-4 w-4" />
-                                일괄 장부 기록
-                            </>
-                        )}
-                    </button>
+                    {editingIndex === null && (
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || processedItems.length === 0}
+                            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-md animate-in slide-in-from-bottom-2"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    저장 중...
+                                </>
+                            ) : (
+                                <>
+                                    <Check className="h-4 w-4" />
+                                    일괄 장부 기록
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
