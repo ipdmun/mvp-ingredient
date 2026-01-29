@@ -18,6 +18,12 @@ export default async function IngredientsPage() {
         where: {
             userId: session.user.id,
         },
+        include: {
+            prices: {
+                orderBy: { recordedAt: "desc" },
+                take: 50, // 최근 50개면 충분 (평균가 계산용)
+            },
+        },
         orderBy: { createdAt: "desc" },
     });
 
