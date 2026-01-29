@@ -163,6 +163,8 @@ export async function createBulkIngredientPrices(
         price: number;
         unit: string;
         source: string;
+        amount?: number;
+        originalPrice?: number;
     }[]
 ) {
     const session = await getServerSession(authOptions);
@@ -203,7 +205,7 @@ export async function createBulkIngredientPrices(
             // 2. Save Price
             await createIngredientPrice(
                 ingredientId,
-                setFormData(item.price, item.unit, item.source, (item as any).originalPrice, (item as any).amount)
+                setFormData(item.price, item.unit, item.source, item.originalPrice, item.amount)
             );
             successCount++;
         } catch (error) {
