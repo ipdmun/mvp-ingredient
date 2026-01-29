@@ -167,7 +167,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
 
                                         <div className="flex items-center gap-3">
                                             {/* Market Badge */}
-                                            <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm min-w-[140px]">
+                                            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm min-w-[130px]">
                                                 <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.marketAnalysis.status === 'BEST' ? 'bg-green-100 text-green-600' :
                                                         item.marketAnalysis.status === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
                                                     }`}>
