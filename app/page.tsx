@@ -1,11 +1,11 @@
-
 import { prisma } from "@/app/lib/prisma";
 import Link from "next/link";
-import { createIngredient, deleteIngredient } from "./ingredients/actions";
+import { createIngredient } from "./ingredients/actions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import { Plus, Trash2, ArrowRight, Package } from "lucide-react";
+import { Plus, Package } from "lucide-react";
+import IngredientList from "./components/IngredientList";
 import GlobalCameraFab from "./components/GlobalCameraFab";
 
 export const runtime = "nodejs";
@@ -61,7 +61,7 @@ export default async function Home() {
         </form>
       </div>
 
-      {/* 재료 리스트 */}
+      {/* 재료 리스트 (Client Component) */}
       {ingredients.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-center">
           <div className="rounded-full bg-gray-100 p-3">
@@ -71,52 +71,7 @@ export default async function Home() {
           <p className="mt-1 text-sm text-gray-500">위 폼을 사용하여 첫 번째 재료를 추가해보세요.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ingredients.map((item) => (
-            <div
-              key={item.id}
-              className="group relative flex flex-col justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
-            >
-              <div>
-                <div className="flex items-start justify-between">
-                  <Link href={`/ingredients/${item.id}`} className="font-semibold text-gray-900 hover:text-blue-600">
-                    {item.name}
-                  </Link>
-                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                    {item.unit}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  클릭하여 상세 정보 관리
-                </p>
-              </div>
-
-              <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
-                <Link
-                  href={`/ingredients/${item.id}`}
-                  className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500"
-                >
-                  관리하기 <ArrowRight className="h-3 w-3" />
-                </Link>
-
-                <form
-                  action={async () => {
-                    "use server";
-                    await deleteIngredient(item.id);
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                    aria-label="재료 삭제"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
-        </div>
+        <IngredientList initialIngredients={ingredients} />
       )}
       <GlobalCameraFab ingredients={ingredients} />
     </div>

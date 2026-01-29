@@ -25,29 +25,7 @@ type Props = {
     ingredients: { id: number; name: string }[];
 };
 
-// Simple helper to map ingredient names to emojis
-function getIngredientIcon(name: string): string {
-    const n = name.toLowerCase();
-    if (n.includes("양파")) return "🧅";
-    if (n.includes("계란") || n.includes("달걀")) return "🥚";
-    if (n.includes("무")) return "⚪"; // Radish -> White Circle requested
-    if (n.includes("마늘")) return "🧄";
-    if (n.includes("파")) return "🌱";
-    if (n.includes("감자")) return "🥔";
-    if (n.includes("고구마")) return "🍠";
-    if (n.includes("배추")) return "🥬";
-    if (n.includes("고추")) return "🌶️";
-    if (n.includes("당근")) return "🥕";
-    if (n.includes("오이")) return "🥒";
-    if (n.includes("토마토")) return "🍅";
-    if (n.includes("쌀")) return "🍚";
-    if (n.includes("고기") || n.includes("돼지") || n.includes("소")) return "🥩";
-    if (n.includes("닭")) return "🍗";
-    if (n.includes("생선")) return "🐟";
-    if (n.includes("우유")) return "🥛";
-    if (n.includes("치즈")) return "🧀";
-    return "📦"; // Default icon
-}
+import { getIngredientIcon } from "@/app/lib/utils";
 
 export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredients }: Props) {
     const [processedItems, setProcessedItems] = useState<OCRItem[]>([]);
@@ -192,7 +170,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                             {/* Market Badge */}
                                             <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm min-w-[140px]">
                                                 <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.marketAnalysis.status === 'BEST' ? 'bg-green-100 text-green-600' :
-                                                        item.marketAnalysis.status === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                                                    item.marketAnalysis.status === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
                                                     }`}>
                                                     {item.marketAnalysis.status === 'BEST' && <Check className="h-4 w-4" />}
                                                     {item.marketAnalysis.status === 'BAD' && <AlertTriangle className="h-4 w-4" />}
@@ -201,7 +179,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                                 <div className="text-left">
                                                     <p className="text-[10px] leading-tight text-gray-500">{item.marketAnalysis.cheapestSource} 대비</p>
                                                     <p className={`font-bold text-sm leading-tight ${item.marketAnalysis.status === 'BEST' ? 'text-green-600' :
-                                                            item.marketAnalysis.status === 'BAD' ? 'text-red-600' : 'text-gray-600'
+                                                        item.marketAnalysis.status === 'BAD' ? 'text-red-600' : 'text-gray-600'
                                                         }`}>
                                                         {item.marketAnalysis.diff > 0 ? `+${item.marketAnalysis.diff.toLocaleString()}원` : `${item.marketAnalysis.diff.toLocaleString()}원`}
                                                     </p>
