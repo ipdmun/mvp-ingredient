@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import BulkPriceReviewModal from "./BulkPriceReviewModal";
+import ImageCropModal from "./ImageCropModal";
 
 type Props = {
     ingredients: { id: number; name: string }[];
@@ -12,16 +13,26 @@ export default function GlobalCameraFab({ ingredients }: Props) {
     const [isThinking, setIsThinking] = useState(false);
     const [ocrItems, setOcrItems] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        const reader = new FileReader();
+        reader.onload = () => {
+            setImageToCrop(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        setImageToCrop(null);
         setIsThinking(true);
         try {
             const formData = new FormData();
-            formData.append("file", file);
+            formData.append("file", croppedBlob, "cropped_image.jpg");
 
             const res = await fetch("/api/ocr", {
                 method: "POST",
@@ -68,7 +79,19 @@ export default function GlobalCameraFab({ ingredients }: Props) {
                 )}
             </button>
 
-            {/* Modal */}
+            {/* Crop Modal */}
+            {imageToCrop && (
+                <ImageCropModal
+                    image={imageToCrop}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => {
+                        setImageToCrop(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                />
+            )}
+
+            {/* Bulk Review Modal */}
             <BulkPriceReviewModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
