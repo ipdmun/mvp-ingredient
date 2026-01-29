@@ -23,7 +23,7 @@ export async function createIngredient(formData: FormData) {
         data: {
             name,
             unit,
-            userId: session.user.id,
+            userId: session.user.id as string,
         },
     });
 
@@ -198,7 +198,7 @@ export async function createBulkIngredientPrices(
             // 2. Save Price
             await createIngredientPrice(
                 ingredientId,
-                setFormData(item.price, item.unit, item.source, item.originalPrice, item.amount)
+                setFormData(item.price, item.unit, item.source, (item as any).originalPrice, (item as any).amount)
             );
             successCount++;
         } catch (error) {
