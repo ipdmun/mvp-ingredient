@@ -38,7 +38,7 @@ export default async function RootLayout({
           <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-8">
               <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-blue-600 hover:opacity-80">
-                🥗 식자재 Pro
+                🥗 성공식당
               </Link>
               <div className="hidden md:flex items-center gap-6">
                 <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
