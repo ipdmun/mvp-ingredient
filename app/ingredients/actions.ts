@@ -132,3 +132,43 @@ export async function getIngredients() {
         orderBy: { createdAt: "desc" },
     });
 }
+
+export async function createBulkIngredientPrices(
+    items: {
+        ingredientId: number;
+        price: number;
+        unit: string;
+        source: string;
+    }[]
+) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+        throw new Error("Unauthorized");
+    }
+
+    let successCount = 0;
+
+    for (const item of items) {
+        try {
+            await createIngredientPrice(
+                item.ingredientId,
+                setFormData(item.price, item.unit, item.source)
+            );
+            successCount++;
+        } catch (error) {
+            console.error(`Failed to save price for ingredient ${item.ingredientId}`, error);
+        }
+    }
+
+    revalidatePath("/ingredients");
+    return { success: true, count: successCount };
+}
+
+// Helper to create FormData for reusing createIngredientPrice logic
+function setFormData(price: number, unit: string, source: string) {
+    const formData = new FormData();
+    formData.append("price", price.toString());
+    formData.append("unit", unit);
+    formData.append("source", source);
+    return formData;
+}
