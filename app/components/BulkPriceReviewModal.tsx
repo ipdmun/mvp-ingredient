@@ -30,7 +30,7 @@ function getIngredientIcon(name: string): string {
     const n = name.toLowerCase();
     if (n.includes("양파")) return "🧅";
     if (n.includes("계란") || n.includes("달걀")) return "🥚";
-    if (n.includes("무")) return "🥔"; // Radish (Root) -> Potato for now (no Daikon emoji)
+    if (n.includes("무")) return "⚪"; // Radish -> White Circle requested
     if (n.includes("마늘")) return "🧄";
     if (n.includes("파")) return "🌱";
     if (n.includes("감자")) return "🥔";
@@ -190,20 +190,20 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
 
                                         <div className="flex items-center gap-3">
                                             {/* Market Badge */}
-                                            <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
-                                                <div className={`flex h-6 w-6 items-center justify-center rounded-full ${item.marketAnalysis.status === 'BEST' ? 'bg-green-100 text-green-600' :
-                                                    item.marketAnalysis.status === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                                            <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm min-w-[140px]">
+                                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${item.marketAnalysis.status === 'BEST' ? 'bg-green-100 text-green-600' :
+                                                        item.marketAnalysis.status === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
                                                     }`}>
-                                                    {item.marketAnalysis.status === 'BEST' && <Check className="h-3 w-3" />}
-                                                    {item.marketAnalysis.status === 'BAD' && <AlertTriangle className="h-3 w-3" />}
-                                                    {item.marketAnalysis.status === 'GOOD' && <Check className="h-3 w-3" />}
+                                                    {item.marketAnalysis.status === 'BEST' && <Check className="h-4 w-4" />}
+                                                    {item.marketAnalysis.status === 'BAD' && <AlertTriangle className="h-4 w-4" />}
+                                                    {item.marketAnalysis.status === 'GOOD' && <Check className="h-4 w-4" />}
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-[10px] text-gray-500">{item.marketAnalysis.cheapestSource} 대비</p>
-                                                    <p className={`font-bold text-xs ${item.marketAnalysis.status === 'BEST' ? 'text-green-600' :
-                                                        item.marketAnalysis.status === 'BAD' ? 'text-red-600' : 'text-gray-600'
+                                                <div className="text-left">
+                                                    <p className="text-[10px] leading-tight text-gray-500">{item.marketAnalysis.cheapestSource} 대비</p>
+                                                    <p className={`font-bold text-sm leading-tight ${item.marketAnalysis.status === 'BEST' ? 'text-green-600' :
+                                                            item.marketAnalysis.status === 'BAD' ? 'text-red-600' : 'text-gray-600'
                                                         }`}>
-                                                        {item.marketAnalysis.diff > 0 ? `+${item.marketAnalysis.diff.toLocaleString()}` : item.marketAnalysis.diff.toLocaleString()}
+                                                        {item.marketAnalysis.diff > 0 ? `+${item.marketAnalysis.diff.toLocaleString()}원` : `${item.marketAnalysis.diff.toLocaleString()}원`}
                                                     </p>
                                                 </div>
                                             </div>
