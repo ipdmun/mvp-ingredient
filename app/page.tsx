@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { Plus, Trash2, ArrowRight, Package } from "lucide-react";
+import GlobalCameraFab from "./components/GlobalCameraFab";
 
 export const runtime = "nodejs";
 
@@ -117,6 +118,7 @@ export default async function Home() {
           ))}
         </div>
       )}
+      <GlobalCameraFab ingredients={ingredients} />
     </div>
   );
 }
