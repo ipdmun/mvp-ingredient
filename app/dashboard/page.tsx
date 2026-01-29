@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         // @ts-ignore
         const monthlyUsage = ingredient.monthlyUsage ?? 10;
 
-        const savings = Math.max((avg - min) * monthlyUsage, 0);
+        const savings = Math.floor(Math.max((avg - min) * monthlyUsage, 0));
 
         return {
             id: ingredient.id,
