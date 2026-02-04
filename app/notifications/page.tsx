@@ -1,7 +1,7 @@
 
 import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
@@ -11,14 +11,14 @@ export const runtime = "nodejs";
 export default async function NotificationsPage() {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user?.id) {
+    if (!session || !(session.user as any)?.id) {
         redirect("/login");
     }
 
     // 1. 읽지 않은 알림을 포함한 최근 알림 조회
     const notifications = await prisma.notification.findMany({
         where: {
-            userId: session.user.id,
+            userId: (session.user as any).id,
         },
         orderBy: { createdAt: "desc" },
         take: 50,
@@ -28,7 +28,7 @@ export default async function NotificationsPage() {
     if (notifications.some(n => !n.isRead)) {
         await prisma.notification.updateMany({
             where: {
-                userId: session.user.id,
+                userId: (session.user as any).id,
                 isRead: false,
             },
             data: { isRead: true },

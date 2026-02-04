@@ -1,35 +1,44 @@
 
 import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import { Wallet, TrendingDown, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user?.id) {
+    if (!session || !(session.user as any)?.id) {
         redirect("/login");
     }
 
-    const ingredients = await prisma.ingredient.findMany({
-        where: { userId: session.user.id },
-        include: {
-            prices: {
-                orderBy: { recordedAt: "desc" },
+    let ingredients: any[] = [];
+    try {
+        ingredients = await prisma.ingredient.findMany({
+            where: {
+                // @ts-ignore
+                userId: (session.user as any).id
             },
-        },
-    });
+            include: {
+                prices: {
+                    orderBy: { recordedAt: "desc" },
+                },
+            },
+        });
+    } catch (error) {
+        console.error("Dashboard Page Data Fetch Error:", error);
+    }
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const rows = ingredients.map((ingredient) => {
         const monthlyPrices = ingredient.prices.filter(
-            (p) => p.recordedAt >= startOfMonth
+            (p: any) => p.recordedAt >= startOfMonth
         );
 
         if (monthlyPrices.length === 0) {
@@ -41,9 +50,9 @@ export default async function DashboardPage() {
             };
         }
 
-        const sum = monthlyPrices.reduce((acc, p) => acc + p.price, 0);
+        const sum = monthlyPrices.reduce((acc: number, p: any) => acc + p.price, 0);
         const avg = sum / monthlyPrices.length;
-        const min = Math.min(...monthlyPrices.map((p) => p.price));
+        const min = Math.min(...monthlyPrices.map((p: any) => p.price));
 
         // @ts-ignore
         const monthlyUsage = ingredient.monthlyUsage ?? 10;
@@ -58,7 +67,7 @@ export default async function DashboardPage() {
         };
     });
 
-    const totalSavings = rows.reduce((acc, r) => acc + r.savings, 0);
+    const totalSavings = rows.reduce((acc: number, r: any) => acc + r.savings, 0);
 
     return (
         <div className="space-y-8">

@@ -3,7 +3,7 @@ import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
 import { createIngredientPrice, updateIngredientUsage } from "../actions";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/lib/auth";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, TrendingDown, Clock, CreditCard } from "lucide-react";
 import AddPriceForm from "../components/AddPriceForm";

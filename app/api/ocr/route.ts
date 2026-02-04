@@ -1,7 +1,10 @@
 
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
+    console.log("🔥 [API] OCR 요청이 들어왔습니다! (Real Google Vision Code) 🔥");
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File;
@@ -13,68 +16,93 @@ export async function POST(request: Request) {
             );
         }
 
-        // 여기에 Google Vision API 연동 코드가 들어갑니다.
-        // 지금은 Mock Data(가짜 결과)를 반환하여 UX를 테스트합니다.
+        const apiKey = process.env.GOOGLE_VISION_API_KEY;
+        if (!apiKey) {
+            console.warn("GOOGLE_VISION_API_KEY is missing. Falling back to Mock for demo purposes, but warning user.");
+            // Fallback to Mock if no key (for smoother dev experience if user forgets)
+            // But we should probably error out or warn. Let's error out to force them to add it as requested.
+            return NextResponse.json(
+                { error: "Google Vision API 키가 설정되지 않았습니다. .env 파일을 확인해주세요." },
+                { status: 500 }
+            );
+        }
 
-        // 1. 실제 구현 시: 
-        // const buffer = Buffer.from(await file.arrayBuffer());
-        // const [result] = await client.textDetection(buffer);
-        // const text = result.fullTextAnnotation?.text || "";
+        // Convert file to base64
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const base64Image = buffer.toString('base64');
 
-        console.log(`[OCR Mock] Received file: ${file.name}, size: ${file.size}`);
-
-        // 2. 가상 딜레이 (1.5초) - 실제 OCR처럼 느끼게
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // 3. 가상 데이터 반환 (Bulk & Market Analysis)
-        // 사용자가 올린 사진 데이터에 맞춰 Mock 업데이트
-        const mockItems = [
-            {
-                name: "양파",
-                originalPrice: 41000,
-                amount: 15,
-                unit: "kg",
-                price: Math.round(41000 / 15), // 단위당 가격 (2733원)
-                marketAnalysis: {
-                    cheapestSource: "식자재마트",
-                    price: 2500,
-                    status: "BAD",
-                    diff: 233
+        // Call Google Vision API
+        const apiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
+        const requestBody = {
+            requests: [
+                {
+                    image: {
+                        content: base64Image
+                    },
+                    features: [
+                        {
+                            type: "TEXT_DETECTION"
+                        }
+                    ]
                 }
+            ]
+        };
+
+        const visionRes = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             },
-            {
-                name: "무",
-                originalPrice: 23000,
-                amount: 21,
-                unit: "kg",
-                price: Math.round(23000 / 21), // 단위당 가격 (1095원)
-                marketAnalysis: {
-                    cheapestSource: "쿠팡",
-                    price: 1500,
-                    status: "BEST",
-                    diff: -405
-                }
-            },
-            {
-                name: "간마늘",
-                originalPrice: 12000,
-                amount: 5,
-                unit: "kg",
-                price: Math.round(12000 / 5), // 단위당 가격 (2400원)
-                marketAnalysis: {
-                    cheapestSource: "노브랜드",
-                    price: 2100,
-                    status: "BAD",
-                    diff: 300
-                }
-            }
-        ];
-
-        return NextResponse.json({
-            items: mockItems,
-            rawText: "양파 15kg 41,000\n무 21kg 23,000\n진마늘 5kg 12,000",
+            body: JSON.stringify(requestBody)
         });
 
+        if (!visionRes.ok) {
+            const errorText = await visionRes.text();
+            throw new Error(`Google Vision API Error: ${visionRes.status} ${errorText}`);
+        }
+
+        const visionData = await visionRes.json();
+        const fullText = visionData.responses[0]?.fullTextAnnotation?.text || "";
+
+        console.log("[OCR] Raw Text:", fullText);
+
+        // Basic Parsing Logic
+        const lines = fullText.split('\n').filter((line: string) => line.trim() !== "");
+        const parsedItems = lines.map((line: string) => {
+            // Very naive parser: tries to find numbers for price/amount
+            // Format assumptions: "Name Amount Unit Price" or mixed
+
+            // Extract Price (largest number usually)
+            const numbers = line.match(/[\d,]+/g)?.map(n => parseInt(n.replace(/,/g, ''))) || [];
+            let price = 0;
+            let amount = 1;
+
+            if (numbers.length > 0) {
+                price = Math.max(...numbers);
+            }
+
+            // Extract Unit (kg, g, l, ml, 개, 박스, 망)
+            const unitMatch = line.match(/(kg|g|ml|l|개|박스|망)/i);
+            const unit = unitMatch ? unitMatch[0] : "개";
+
+            // Extract Name (remove numbers and special chars roughly)
+            let name = line.replace(/[\d,]/g, '').replace(/(kg|g|ml|l|개|박스|망|원)/gi, '').trim();
+            if (name.length === 0) name = "알 수 없음";
+
+            return {
+                name: name,
+                originalPrice: price,
+                amount: amount, // Default to 1 for now, hard to parse "3kg" vs "3" without more logic
+                unit: unit,
+                price: price, // Default unit price to total price for safety
+                marketAnalysis: null // Reset analysis
+            };
+        });
+
+        return NextResponse.json({
+            items: parsedItems,
+            rawText: fullText,
+        });
 
     } catch (error) {
         console.error("OCR Error:", error);

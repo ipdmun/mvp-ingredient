@@ -2,7 +2,7 @@ import { prisma } from "@/app/lib/prisma";
 import Link from "next/link";
 import { createIngredient } from "./ingredients/actions";
 import { getServerSession } from "next-auth";
-import { authOptions } from "./api/auth/[...nextauth]/route";
+import { authOptions } from "./lib/auth";
 import { redirect } from "next/navigation";
 import { Plus, Package } from "lucide-react";
 import IngredientList from "./components/IngredientList";
@@ -10,26 +10,36 @@ import GlobalCameraFab from "./components/GlobalCameraFab";
 
 export const runtime = "nodejs";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user?.id) {
+  if (!session || !(session.user as any)?.id) {
     redirect("/login");
   }
+  const userId = (session.user as any).id;
 
-  const ingredients = await prisma.ingredient.findMany({
-    where: {
-      // @ts-ignore
-      userId: session.user.id,
-    },
-    include: {
-      prices: {
-        orderBy: { recordedAt: "desc" },
-        take: 50,
+  console.log(`[HomePage] Rendering for user: ${userId}`);
+
+  let ingredients: any[] = [];
+  try {
+    ingredients = await prisma.ingredient.findMany({
+      where: {
+        // @ts-ignore
+        userId: userId
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      include: {
+        prices: {
+          orderBy: { recordedAt: "desc" },
+          take: 50,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("Home Page Data Fetch Error:", error);
+  }
 
   return (
     <div className="space-y-8">

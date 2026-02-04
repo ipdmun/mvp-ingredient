@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Check, X, AlertTriangle, Loader2, Pencil, Trash2, Save } from "lucide-react";
 import { createBulkIngredientPrices } from "@/app/ingredients/actions";
 import { getIngredientIcon } from "@/app/lib/utils";
@@ -85,6 +86,8 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         setEditingIndex(null);
     };
 
+    const router = useRouter();
+
     const handleSave = async () => {
         if (processedItems.length === 0) {
             alert("저장할 항목이 없습니다.");
@@ -105,6 +108,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
             await createBulkIngredientPrices(payload);
             onClose();
             alert("일괄 저장되었습니다!");
+            router.refresh();
         } catch (error) {
             console.error(error);
             alert("저장 중 오류가 발생했습니다.");

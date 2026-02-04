@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { getServerSession } from "next-auth";
-import { authOptions } from "./api/auth/[...nextauth]/route";
+import { authOptions } from "./lib/auth";
 import { prisma } from "./lib/prisma";
 import Link from "next/link";
 import { Bell, LayoutDashboard, List, ShieldCheck } from "lucide-react";
@@ -19,16 +19,23 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions);
+  let session = null;
   let unreadCount = 0;
 
-  if (session?.user?.id) {
-    unreadCount = await prisma.notification.count({
-      where: {
-        userId: session.user.id,
-        isRead: false,
-      },
-    });
+  try {
+    session = await getServerSession(authOptions);
+
+    if (session?.user) {
+      unreadCount = await (prisma as any).notification.count({
+        where: {
+          userId: (session.user as any).id,
+          isRead: false,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Critical Layout Error (Session/Prisma):", error);
+    // 앱 전체 중단(Digest error)을 방지하기 위해 빈 상태로 진행
   }
 
   return (

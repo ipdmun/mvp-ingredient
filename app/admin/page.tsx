@@ -1,7 +1,7 @@
 
 import { prisma } from "@/app/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Users, Package, FileText, ArrowLeft } from "lucide-react";
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export default async function AdminPage() {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user?.id) {
+    if (!session || !(session.user as any)?.id) {
         redirect("/login");
     }
 
