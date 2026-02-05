@@ -195,6 +195,23 @@ export async function addRecipeIngredient(recipeId: number, ingredientId: number
         const recipe = await prisma.recipe.findFirst({ where: { id: recipeId, userId } });
         if (!recipe) return { success: false, error: "레시피를 찾을 수 없거나 접근 권한이 없습니다." };
 
+        // [Check for existing]
+        // @ts-ignore
+        const existing = await prisma.recipeIngredient.findFirst({
+            where: { recipeId, ingredientId }
+        });
+
+        if (existing) {
+            // Update existing
+            // @ts-ignore
+            const updated = await prisma.recipeIngredient.update({
+                where: { id: existing.id },
+                data: { amount: existing.amount + amount }
+            });
+            revalidatePath(`/recipes/${recipeId}`);
+            return { success: true, ri: JSON.parse(JSON.stringify(updated)), message: "Added to existing ingredient" };
+        }
+
         // @ts-ignore
         const ri = await prisma.recipeIngredient.create({
             data: { recipeId, ingredientId, amount }
@@ -258,23 +275,25 @@ export async function applyPresetToRecipe(recipeId: number) {
                 // [UNIT CONVERSION]
                 let finalAmount = item.amount;
                 // If user ingredient unit differs from preset unit
-                if (ingredient.unit !== item.unit) {
-                    console.log(`[ApplyPreset] Unit mismatch for ${item.name}: Preset(${item.unit}) vs User(${ingredient.unit})`);
+                // Normalize units: remove spaces, lowercase
+                const u1 = item.unit.toLowerCase().trim();
+                const u2 = ingredient.unit.toLowerCase().trim();
 
-                    const u1 = item.unit.toLowerCase(); // Preset unit
-                    const u2 = ingredient.unit.toLowerCase(); // User unit
+                if (u1 !== u2) {
+                    console.log(`[ApplyPreset] Unit mismatch for ${item.name}: Preset(${u1}) vs User(${u2})`);
 
                     if (u1 === 'g' && u2 === 'kg') {
                         finalAmount = item.amount / 1000;
                     } else if (u1 === 'kg' && u2 === 'g') {
                         finalAmount = item.amount * 1000;
                     }
-                    // Special case: "단" (Bundle) 
-                    // Heuristic: 1 Bundle ≈ 800g (Typical for Green Onion/Daepa)
-                    else if (u1 === 'g' && (u2 === '단' || u2 === 'bundle')) {
+                    // Special case: "단" (Bundle)
+                    // Support "단", "bundle", "pkt", "봉" etc. for green onion heuristic if needed
+                    // For now, strict on "g" -> "단" logic
+                    else if (u1 === 'g' && (u2.includes('단') || u2.includes('bundle'))) {
                         finalAmount = item.amount / 800;
                     }
-                    else if (u1 === 'kg' && (u2 === '단' || u2 === 'bundle')) {
+                    else if (u1 === 'kg' && (u2.includes('단') || u2.includes('bundle'))) {
                         finalAmount = item.amount / 0.8;
                     }
 

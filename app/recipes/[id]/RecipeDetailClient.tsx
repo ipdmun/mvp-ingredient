@@ -230,7 +230,7 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                         <button
                                             disabled={isProcessing}
                                             onClick={() => handleDeleteIngredient(item.id)}
-                                            className="h-8 w-8 rounded-full bg-red-50 flex items-center justify-center text-red-50 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 disabled:opacity-30"
+                                            className="h-8 w-8 rounded-full bg-red-50 flex items-center justify-center text-red-400 opacity-100 hover:bg-red-100 disabled:opacity-30"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
