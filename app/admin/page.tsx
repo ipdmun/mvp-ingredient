@@ -58,6 +58,7 @@ export default async function AdminPage() {
                     value={`${ingredientCount}개`}
                     icon={<Package className="h-6 w-6 text-green-600" />}
                     color="border-l-green-500"
+                    href="/"
                 />
                 <StatCard
                     title="가격 기록"
@@ -111,9 +112,9 @@ export default async function AdminPage() {
     );
 }
 
-function StatCard({ title, value, icon, color }: { title: string; value: string; icon: React.ReactNode; color: string }) {
-    return (
-        <div className={`overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100 border-l-4 ${color}`}>
+function StatCard({ title, value, icon, color, href }: { title: string; value: string; icon: React.ReactNode; color: string; href?: string }) {
+    const Content = (
+        <div className={`overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100 border-l-4 ${color} ${href ? 'transition-transform hover:scale-105 active:scale-95 cursor-pointer hover:shadow-md' : ''}`}>
             <div className="p-5">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -131,4 +132,10 @@ function StatCard({ title, value, icon, color }: { title: string; value: string;
             </div>
         </div>
     );
+
+    if (href) {
+        return <Link href={href}>{Content}</Link>;
+    }
+
+    return Content;
 }

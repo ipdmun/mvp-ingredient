@@ -66,6 +66,7 @@ export default function GlobalCameraFab({ ingredients }: Props) {
             <input
                 type="file"
                 accept="image/*"
+                capture={"environment" as any}
                 ref={fileInputRef}
                 className="hidden"
                 onChange={handleFileChange}

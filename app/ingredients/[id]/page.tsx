@@ -7,6 +7,7 @@ import { authOptions } from "@/app/lib/auth";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, TrendingDown, Clock, CreditCard } from "lucide-react";
 import AddPriceForm from "../components/AddPriceForm";
+import IngredientPriceSummary from "../../components/IngredientPriceSummary";
 
 type Props = {
     params: Promise<{
@@ -40,32 +41,10 @@ export default async function IngredientDetailPage(props: Props) {
         notFound();
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const monthlyPrices = ingredient.prices.filter(
-        (p) => p.recordedAt >= startOfMonth
-    );
-
-    let averagePrice = null;
-    let lowestMonthlyPrice = null;
-
-    if (monthlyPrices.length > 0) {
-        const sum = monthlyPrices.reduce((acc: number, p: any) => acc + p.price, 0);
-        averagePrice = Math.round(sum / monthlyPrices.length);
-        lowestMonthlyPrice = Math.min(
-            ...monthlyPrices.map((p: any) => p.price)
-        );
-    }
+    const { getIngredientIcon } = await import("@/app/lib/utils");
 
     // @ts-ignore
     const monthlyUsage = ingredient.monthlyUsage ?? 10;
-
-    let monthlySavings = null;
-
-    if (averagePrice && lowestMonthlyPrice) {
-        monthlySavings = (averagePrice - lowestMonthlyPrice) * monthlyUsage;
-    }
 
     return (
         <div className="space-y-6">
@@ -73,7 +52,14 @@ export default async function IngredientDetailPage(props: Props) {
                 <Link href="/" className="rounded-full p-2 hover:bg-gray-100 transition-colors">
                     <ArrowLeft className="h-5 w-5 text-gray-500" />
                 </Link>
-                <div className="flex-1">
+                <div className="flex-1 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-2xl shadow-inner border border-blue-100/50 overflow-hidden">
+                        {getIngredientIcon(ingredient.name).startsWith("/") ? (
+                            <img src={getIngredientIcon(ingredient.name)} alt={ingredient.name} className="h-full w-full object-contain p-1 mix-blend-multiply" />
+                        ) : (
+                            getIngredientIcon(ingredient.name)
+                        )}
+                    </div>
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                         {ingredient.name}
                         <span className="ml-2 text-base font-normal text-gray-500">({ingredient.unit})</span>
@@ -106,46 +92,15 @@ export default async function IngredientDetailPage(props: Props) {
             <div className="grid gap-6 md:grid-cols-2">
                 {/* 왼쪽: 가격 정보 및 절감액 */}
                 <div className="space-y-6">
-                    {/* 최저가 카드 */}
-                    {lowestPrice ? (
-                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                                <TrendingDown className="h-4 w-4 text-green-600" />
-                                현재 최저가 확인
-                            </h3>
-                            <div className="mt-4">
-                                <div className="text-3xl font-bold text-gray-900">
-                                    {lowestPrice.price.toLocaleString()}원
-                                    <span className="text-lg text-gray-400 font-normal ml-1">/{lowestPrice.unit}</span>
-                                </div>
-                                <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                                    <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                                        최저가
-                                    </span>
-                                    <span>출처: <strong>{lowestPrice.source}</strong></span>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500 bg-gray-50">
-                            아직 등록된 가격 정보가 없습니다.
-                        </div>
-                    )}
-
-                    {/* 절감액 카드 */}
-                    {monthlySavings !== null && monthlySavings > 0 && (
-                        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 p-6 text-white shadow-md">
-                            <div className="relative z-10">
-                                <h3 className="text-sm font-medium text-cyan-100">이번 달 예상 절감액</h3>
-                                <div className="mt-2 text-3xl font-bold">
-                                    ₩{monthlySavings.toLocaleString()}
-                                </div>
-                                <p className="mt-1 text-xs text-cyan-100 opacity-80">
-                                    (평균가 대비, 월 {monthlyUsage}{ingredient.unit} 사용 기준)
-                                </p>
-                            </div>
-                        </div>
-                    )}
+                    {/* 가격 분석 Summary (Client Component) */}
+                    <div className="block">
+                        {/* @ts-ignore */}
+                        <IngredientPriceSummary
+                            prices={ingredient.prices}
+                            unit={ingredient.unit}
+                            lowestPrice={lowestPrice ? { price: lowestPrice.price, source: lowestPrice.source } : null}
+                        />
+                    </div>
 
                     {/* 가격 추가 폼 (Client Component) */}
                     <AddPriceForm ingredientId={ingredient.id} unit={ingredient.unit} />
@@ -153,16 +108,9 @@ export default async function IngredientDetailPage(props: Props) {
 
                 {/* 오른쪽: 가격 비교 테이블 */}
                 <div>
-                    <h3 className="mb-4 flex items-center justify-between gap-2 text-lg font-bold text-gray-900">
-                        <div className="flex items-center gap-2">
-                            <Clock className="h-5 w-5 text-gray-500" />
-                            가격 변동 기록
-                        </div>
-                        {averagePrice && (
-                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
-                                이번 달 평균: {averagePrice.toLocaleString()}원
-                            </span>
-                        )}
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
+                        <Clock className="h-5 w-5 text-gray-500" />
+                        구매 내역
                     </h3>
 
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -176,9 +124,9 @@ export default async function IngredientDetailPage(props: Props) {
                                     <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                                         <tr>
                                             <th className="px-6 py-4">출처</th>
-                                            <th className="px-6 py-4">단위당 가격</th>
-                                            <th className="px-6 py-4">구매 정보(총액)</th>
-                                            <th className="px-6 py-4 text-right">기록일</th>
+                                            <th className="px-6 py-4">구매 정보 (총액)</th>
+                                            <th className="px-6 py-4">단가 환산</th>
+                                            <th className="px-6 py-4 text-right">날짜</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
@@ -190,17 +138,19 @@ export default async function IngredientDetailPage(props: Props) {
                                                         {p.source}
                                                         {isLowest && <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">최저가</span>}
                                                     </td>
-                                                    <td className="px-6 py-4 text-blue-600 font-bold">
-                                                        {p.price.toLocaleString()}원
-                                                    </td>
-                                                    <td className="px-6 py-4 text-gray-500">
+                                                    <td className="px-6 py-4 text-gray-700">
                                                         {p.totalPrice ? (
-                                                            <span>{p.totalPrice.toLocaleString()}원 ({p.amount}{p.unit})</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold">{p.totalPrice.toLocaleString()}원/{p.amount}{p.unit}</span>
+                                                            </div>
                                                         ) : (
-                                                            <span className="text-gray-300">-</span>
+                                                            <span className="text-gray-400">-</span>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right text-gray-400">
+                                                    <td className="px-6 py-4 text-blue-600 font-bold">
+                                                        {p.price.toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{p.unit}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-gray-400 text-xs">
                                                         {p.recordedAt.toLocaleDateString()}
                                                     </td>
                                                 </tr>

@@ -48,15 +48,15 @@ export default async function RootLayout({
                 🥗 성공식당
               </Link>
               <div className="hidden md:flex items-center gap-6">
-                <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+                <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-all hover:scale-105 active:scale-95">
                   <List className="h-4 w-4" />
                   목록
                 </Link>
-                <Link href="/dashboard" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+                <Link href="/dashboard" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-all hover:scale-105 active:scale-95">
                   <LayoutDashboard className="h-4 w-4" />
                   대시보드
                 </Link>
-                <Link href="/admin" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+                <Link href="/admin" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-all hover:scale-105 active:scale-95">
                   <ShieldCheck className="h-4 w-4" />
                   관리자
                 </Link>
@@ -89,9 +89,9 @@ export default async function RootLayout({
 
         {/* Mobile Menu (Simple) */}
         <div className="md:hidden flex justify-around border-b border-gray-200 bg-white py-2">
-          <Link href="/" className="text-sm font-medium text-gray-600 p-2">목록</Link>
-          <Link href="/dashboard" className="text-sm font-medium text-gray-600 p-2">대시보드</Link>
-          <Link href="/admin" className="text-sm font-medium text-gray-600 p-2">관리자</Link>
+          <Link href="/" className="text-sm font-medium text-gray-600 p-2 transition-transform hover:scale-105 active:scale-95">목록</Link>
+          <Link href="/dashboard" className="text-sm font-medium text-gray-600 p-2 transition-transform hover:scale-105 active:scale-95">대시보드</Link>
+          <Link href="/admin" className="text-sm font-medium text-gray-600 p-2 transition-transform hover:scale-105 active:scale-95">관리자</Link>
         </div>
 
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">

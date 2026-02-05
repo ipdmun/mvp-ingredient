@@ -48,6 +48,7 @@ model User {
   sessions      Session[]
   ingredients   Ingredient[]
   notifications Notification[]
+  recipes       Recipe[]
 }
 
 model Notification {
@@ -79,6 +80,7 @@ model Ingredient {
   monthlyUsage Int @default(10) // 월 예상 사용량 (단위: kg/개 등)
 
   prices    IngredientPrice[]
+  recipeIngredients RecipeIngredient[]
 }
 
 model IngredientPrice {
@@ -92,4 +94,27 @@ model IngredientPrice {
   recordedAt   DateTime   @default(now())
 
   ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  marketData   Json?      // 마켓 분석 데이터 (최저가 비교 등)
+}
+
+model Recipe {
+  id           Int                @id @default(autoincrement())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id])
+  name         String
+  description  String?
+  imageUrl     String?            // 레시피 이미지
+  servings     Int                @default(1) // 기준 인분 수
+  sellingPrice Int?               // 판매 가격
+  ingredients  RecipeIngredient[] 
+  createdAt    DateTime           @default(now())
+}
+
+model RecipeIngredient {
+  id           Int        @id @default(autoincrement())
+  recipeId     Int
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId Int
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  amount       Float      // 레시피에 사용되는 양 (g, kg, 개 등)
 }

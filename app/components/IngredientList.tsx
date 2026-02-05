@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Trash2, ArrowUpDown, Clock, SortAsc, SortDesc } from "lucide-react";
+import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2 } from "lucide-react";
 import { getIngredientIcon } from "@/app/lib/utils";
-import { deleteIngredient } from "@/app/ingredients/actions";
+import { deleteIngredient, refreshIngredientPrice } from "@/app/ingredients/actions";
 
 type Price = {
     price: number;
     recordedAt: Date;
     source: string;
+    marketData?: any; // JSON
 };
 
 type Ingredient = {
@@ -28,12 +30,14 @@ type SortType = "name" | "createdAt" | "unit" | "price";
 type SortOrder = "asc" | "desc";
 
 export default function IngredientList({ initialIngredients }: Props) {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortType, setSortType] = useState<SortType>("createdAt");
     const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
     const getPriceAnalysis = (name: string, prices: Price[]) => {
-        const latest = prices[0]?.price || 0;
+        const latestPriceObj = prices[0];
+        const latest = latestPriceObj?.price || 0;
         const previous = prices[1]?.price || null;
 
         const now = new Date();
@@ -51,22 +55,18 @@ export default function IngredientList({ initialIngredients }: Props) {
             ? Math.round(monthPrices.reduce((acc, p) => acc + p.price, 0) / monthPrices.length)
             : 0;
 
-        // Mock Market Data Comparison
-        const mockMarketPrice = name.includes("양파") ? 2500 : name.includes("무") ? 1500 : 2000;
-        const marketStatus = (avg: number) => {
-            if (avg === 0) return null;
-            if (avg < mockMarketPrice * 0.9) return "BEST";
-            if (avg > mockMarketPrice * 1.1) return "BAD";
-            return "GOOD";
-        };
+        // Use stored marketData if available
+        let latestMarketData = null;
+        if (latestPriceObj && latestPriceObj.marketData) {
+            latestMarketData = latestPriceObj.marketData as any;
+        }
 
         return {
             latest,
             previous,
             weekAvg,
             monthAvg,
-            weekStatus: marketStatus(weekAvg),
-            monthStatus: marketStatus(monthAvg)
+            marketData: latestMarketData
         };
     };
 
@@ -93,6 +93,22 @@ export default function IngredientList({ initialIngredients }: Props) {
         } else {
             setSortType(type);
             setSortOrder("asc");
+        }
+    };
+
+    const [refreshingId, setRefreshToken] = useState<number | null>(null);
+
+    const handleRefreshPrice = async (e: React.MouseEvent, id: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setRefreshToken(id);
+
+        try {
+            await refreshIngredientPrice(id);
+        } catch (error) {
+            console.error("Failed to refresh price", error);
+        } finally {
+            setRefreshToken(null);
         }
     };
 
@@ -139,23 +155,28 @@ export default function IngredientList({ initialIngredients }: Props) {
             {/* List Grid */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredAndSortedIngredients.map((item) => {
-                    const { latest, previous, weekAvg, monthAvg, weekStatus, monthStatus } = getPriceAnalysis(item.name, item.prices);
+                    const { latest, previous, weekAvg, monthAvg, marketData } = getPriceAnalysis(item.name, item.prices);
 
                     return (
                         <div
                             key={item.id}
-                            className="group relative flex flex-col justify-between rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-xl hover:-translate-y-1"
+                            onClick={() => router.push(`/ingredients/${item.id}`)}
+                            className="group relative flex flex-col justify-between rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
                         >
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-inner border border-blue-100/50">
-                                            {getIngredientIcon(item.name)}
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-inner border border-blue-100/50 overflow-hidden">
+                                            {getIngredientIcon(item.name).startsWith("/") ? (
+                                                <img src={getIngredientIcon(item.name)} alt={item.name} className="h-full w-full object-contain p-1 mix-blend-multiply" />
+                                            ) : (
+                                                getIngredientIcon(item.name)
+                                            )}
                                         </div>
                                         <div>
-                                            <Link href={`/ingredients/${item.id}`} className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg">
+                                            <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg">
                                                 {item.name}
-                                            </Link>
+                                            </div>
                                             <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded uppercase">
                                                 {item.unit}
                                             </span>
@@ -167,11 +188,6 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 {latest > 0 ? `${latest.toLocaleString()}원` : "기록 없음"}
                                             </p>
                                             <div className="mt-1 flex gap-1">
-                                                {monthAvg > 0 && (
-                                                    <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100">
-                                                        평균 {monthAvg.toLocaleString()}원
-                                                    </span>
-                                                )}
                                                 {previous && (
                                                     <span className="text-[9px] font-medium text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded line-through decoration-gray-300">
                                                         {previous.toLocaleString()}원
@@ -184,48 +200,83 @@ export default function IngredientList({ initialIngredients }: Props) {
 
                                 {/* Detailed Analysis Section */}
                                 <div className="grid grid-cols-1 gap-2 pt-4 border-t border-gray-50">
-                                    <div className="flex items-center justify-between bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400">7일 평균</p>
-                                            <p className="text-sm font-black text-gray-700">
-                                                {weekAvg > 0 ? `${weekAvg.toLocaleString()}원` : "-"}
-                                            </p>
+                                    {/* Market Data (Naver) */}
+                                    {marketData ? (
+                                        <div
+                                            onClick={(e) => handleRefreshPrice(e, item.id)}
+                                            className="group/badge cursor-pointer flex flex-col gap-2 bg-blue-50/50 rounded-xl p-3 border border-blue-100/50 hover:bg-blue-100/50 transition-colors relative overflow-hidden"
+                                        >
+                                            {refreshingId === item.id && (
+                                                <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]">
+                                                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                                                </div>
+                                            )}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="flex h-5 w-5 items-center justify-center rounded bg-[#03C75A] text-[10px] font-black text-white">N</span>
+                                                    <span className="text-xs font-bold text-gray-700">네이버 최저가</span>
+                                                </div>
+                                                <span className={`text-xs font-black px-2 py-1 rounded-md shadow-sm ${marketData.diff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                    {marketData.diff > 0 ? `+${marketData.diff.toLocaleString()}` : `${marketData.diff.toLocaleString()}`}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-baseline justify-between">
+                                                {marketData.link ? (
+                                                    <a
+                                                        href={marketData.link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="text-xs text-blue-500 underline truncate max-w-[60%] hover:text-blue-700 transition-colors"
+                                                    >
+                                                        {marketData.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
+                                                    </a>
+                                                ) : (
+                                                    <p className="text-xs text-gray-400 truncate max-w-[60%] group-hover/badge:text-gray-600 transition-colors">
+                                                        {marketData.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
+                                                    </p>
+                                                )}
+                                                <p className="text-lg font-black text-gray-900">
+                                                    {marketData.price.toLocaleString()}원
+                                                </p>
+                                            </div>
                                         </div>
-                                        {weekStatus && (
-                                            <span className={`text-[10px] font-black px-2 py-1 rounded-md shadow-sm ${weekStatus === 'BEST' ? 'bg-green-100 text-green-600' :
-                                                weekStatus === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-                                                }`}>
-                                                시장가 대비 {weekStatus === 'BEST' ? '최저' : weekStatus === 'BAD' ? '높음' : '적정'}
+                                    ) : (
+                                        <div
+                                            onClick={(e) => handleRefreshPrice(e, item.id)}
+                                            className="flex cursor-pointer items-center justify-between bg-gray-50/50 rounded-xl p-3 border border-gray-100/50 hover:bg-gray-100 transition-colors relative"
+                                        >
+                                            {refreshingId === item.id && (
+                                                <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+                                                    <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400">7일 평균</p>
+                                                <p className="text-sm font-black text-gray-700">
+                                                    {weekAvg > 0 ? `${weekAvg.toLocaleString()}원` : "-"}
+                                                </p>
+                                            </div>
+                                            <span className="text-[10px] font-medium text-gray-400 group-hover:text-blue-500">
+                                                최저가 확인
                                             </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center justify-between bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400">30일 평균</p>
-                                            <p className="text-sm font-black text-gray-700">
-                                                {monthAvg > 0 ? `${monthAvg.toLocaleString()}원` : "-"}
-                                            </p>
                                         </div>
-                                        {monthStatus && (
-                                            <span className={`text-[10px] font-black px-2 py-1 rounded-md shadow-sm ${monthStatus === 'BEST' ? 'bg-green-100 text-green-600' :
-                                                monthStatus === 'BAD' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-                                                }`}>
-                                                시장가 대비 {monthStatus === 'BEST' ? '최저' : monthStatus === 'BAD' ? '높음' : '적정'}
-                                            </span>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="mt-6 flex items-center justify-between border-t border-gray-50 pt-4">
                                 <Link
                                     href={`/ingredients/${item.id}`}
+                                    onClick={(e) => e.stopPropagation()}
                                     className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
                                 >
                                     추이 분석 <ArrowRight className="h-3.5 w-3.5" />
                                 </Link>
 
                                 <form
+                                    onClick={(e) => e.stopPropagation()}
                                     action={async () => {
                                         if (confirm("정말 이 재료를 삭제하시겠습니까?")) {
                                             await deleteIngredient(item.id);

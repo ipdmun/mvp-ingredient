@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X, AlertTriangle, Loader2, Pencil, Trash2, Save } from "lucide-react";
+import { Check, X, AlertTriangle, Loader2, Pencil, Trash2, Save, Plus } from "lucide-react";
 import { createBulkIngredientPrices } from "@/app/ingredients/actions";
 import { getIngredientIcon } from "@/app/lib/utils";
 
@@ -62,10 +62,9 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         setEditForm({});
     };
 
-    const saveEdit = () => {
+    const saveEdit = async () => {
         if (editingIndex === null) return;
 
-        const newItems = [...processedItems];
         const updatedOriginalPrice = Number(editForm.originalPrice) || 0;
         const updatedAmount = Number(editForm.amount) || 1;
 
@@ -74,16 +73,55 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
             ? Math.round(updatedOriginalPrice / updatedAmount)
             : (Number(editForm.price) || 0);
 
+        // Fetch new market analysis if name or price changed
+        const currentItem = processedItems[editingIndex];
+        let newMarketAnalysis = currentItem.marketAnalysis;
+
+        if (editForm.name !== currentItem.name || finalUnitPrice !== currentItem.price) {
+            try {
+                // Dynamically import logic or call server action
+                const { checkMarketPrice } = await import("@/app/ingredients/actions");
+                const analysis = await checkMarketPrice(
+                    editForm.name || currentItem.name,
+                    finalUnitPrice,
+                    editForm.unit || currentItem.unit,
+                    updatedAmount
+                );
+                if (analysis) {
+                    newMarketAnalysis = analysis;
+                }
+            } catch (e) {
+                console.error("Failed to update market analysis", e);
+            }
+        }
+
+        const newItems = [...processedItems];
         newItems[editingIndex] = {
             ...newItems[editingIndex],
             ...editForm,
             originalPrice: updatedOriginalPrice,
             amount: updatedAmount,
-            price: finalUnitPrice
+            price: finalUnitPrice,
+            marketAnalysis: newMarketAnalysis
         } as OCRItem;
 
         setProcessedItems(newItems);
         setEditingIndex(null);
+    };
+
+    const handleAddItem = () => {
+        const newItem: OCRItem = {
+            name: "",
+            price: 0,
+            unit: "kg",
+            amount: 1,
+            originalPrice: 0,
+            marketAnalysis: null as any
+        };
+        const newItems = [...processedItems, newItem];
+        setProcessedItems(newItems);
+        setEditingIndex(newItems.length - 1);
+        setEditForm(newItem);
     };
 
     const router = useRouter();
@@ -102,13 +140,21 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                 unit: item.unit,
                 source: "영수증/장부",
                 amount: item.amount,
-                originalPrice: item.originalPrice
+                originalPrice: item.originalPrice,
+                marketData: item.marketAnalysis // Pass market data to server action
             }));
 
             await createBulkIngredientPrices(payload);
+
+            // Wait a bit for DB propagation to ensure the list updates correctly
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             onClose();
             alert("일괄 저장되었습니다!");
-            router.refresh();
+
+            // Hard Refresh to ensure data is visible
+            window.location.reload();
+            // router.refresh(); // Temporarily using reload to be 100% sure for the user
         } catch (error) {
             console.error(error);
             alert("저장 중 오류가 발생했습니다.");
@@ -168,16 +214,35 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                     </div>
 
                                     <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 mt-3 sm:mt-0">
-                                        {/* Market Badge */}
+                                        {/* Market Badge (Redesigned) */}
                                         {item.marketAnalysis ? (
-                                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm ${item.marketAnalysis.status === 'BEST' ? 'bg-green-50 border-green-100 text-green-700' :
-                                                item.marketAnalysis.status === 'BAD' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-blue-50 border-blue-100 text-blue-700'
-                                                }`}>
-                                                <span className="text-[10px] font-black uppercase">{item.marketAnalysis.status === 'BEST' ? '최저가' : item.marketAnalysis.status === 'BAD' ? '비쌈' : '적정'}</span>
-                                                <span className="h-2.5 w-[1px] bg-current opacity-20" />
-                                                <span className="font-bold text-xs">
-                                                    {item.marketAnalysis.diff > 0 ? `+${item.marketAnalysis.diff.toLocaleString()}원` : `${item.marketAnalysis.diff.toLocaleString()}원`}
-                                                </span>
+                                            <div className="w-full sm:w-auto mt-2 sm:mt-0 p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-end gap-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="flex h-4 w-4 items-center justify-center rounded bg-[#03C75A] text-[9px] font-black text-white">N</span>
+                                                    {(item.marketAnalysis as any).link ? (
+                                                        <a
+                                                            href={(item.marketAnalysis as any).link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-blue-500 underline truncate max-w-[100px] hover:text-blue-700"
+                                                        >
+                                                            {item.marketAnalysis.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 truncate max-w-[100px]">
+                                                            {item.marketAnalysis.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-sm font-black ${item.marketAnalysis.diff > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                        {item.marketAnalysis.diff > 0 ? '+' : ''}{item.marketAnalysis.diff.toLocaleString()}원
+                                                    </span>
+                                                    <span className="text-xs text-black font-bold">
+                                                        ({item.marketAnalysis.price.toLocaleString()}원)
+                                                    </span>
+
+                                                </div>
                                             </div>
                                         ) : (
                                             <span className="text-[10px] text-gray-300">데이터 없음</span>
@@ -199,30 +264,39 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-gray-100 p-6 flex justify-end gap-3 bg-white shrink-0">
+                <div className="border-t border-gray-100 p-6 bg-white shrink-0 flex flex-col gap-3">
                     <button
-                        onClick={onClose}
-                        className="rounded-xl px-6 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 transition-all"
+                        onClick={handleAddItem}
+                        className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 font-bold hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
                     >
-                        다음에 하기
+                        <Plus className="h-5 w-5" /> 직접 항목 추가하기
                     </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving || processedItems.length === 0 || editingIndex !== null}
-                        className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-3 text-sm font-black text-white hover:bg-blue-700 transition-all disabled:opacity-50 shadow-lg shadow-blue-200"
-                    >
-                        {isSaving ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                장부 정리 중...
-                            </>
-                        ) : (
-                            <>
-                                <Check className="h-5 w-5" />
-                                {processedItems.length}건 한꺼번에 저장
-                            </>
-                        )}
-                    </button>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button
+                            onClick={onClose}
+                            className="rounded-xl px-6 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 transition-all"
+                        >
+                            다음에 하기
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || processedItems.length === 0 || editingIndex !== null}
+                            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-3 text-sm font-black text-white hover:bg-blue-700 transition-all disabled:opacity-50 shadow-lg shadow-blue-200"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    장부 정리 중...
+                                </>
+                            ) : (
+                                <>
+                                    <Check className="h-5 w-5" />
+                                    {processedItems.length}건 한꺼번에 저장
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 

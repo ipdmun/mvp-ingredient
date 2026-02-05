@@ -13,6 +13,7 @@ async function savePriceLogic(userId: string, ingredientId: number, data: {
     amount?: number | null;
     unit: string;
     source: string;
+    marketData?: any; // Add optional marketData
 }) {
     // 1. 해당 재료의 이번 달 기존 최저가 확인
     const now = new Date();
@@ -40,6 +41,7 @@ async function savePriceLogic(userId: string, ingredientId: number, data: {
             amount: data.amount,
             unit: data.unit,
             source: data.source,
+            marketData: data.marketData ?? undefined, // Save to DB
         },
     });
 
@@ -72,13 +74,54 @@ export async function createIngredient(formData: FormData) {
 
     if (!name || !unit) throw new Error("Name and unit are required");
 
-    await prisma.ingredient.create({
-        data: {
-            name,
-            unit,
+    const price = parseInt(formData.get("price") as string);
+    const amount = formData.get("amount") ? parseFloat(formData.get("amount") as string) : 1;
+
+    // Check for existing ingredient
+    const existingIngredient = await prisma.ingredient.findFirst({
+        where: {
+            name: name,
             userId: (session.user as any).id as string,
-        },
+        }
     });
+
+    let ingredientId: number;
+
+    if (existingIngredient) {
+        ingredientId = existingIngredient.id;
+        // Keep existing logic, just skip updating updatedAt 
+    } else {
+        // Create Ingredient
+        const newIngredient = await prisma.ingredient.create({
+            data: {
+                name,
+                unit,
+                userId: (session.user as any).id as string,
+            },
+        });
+        ingredientId = newIngredient.id;
+    }
+
+    // Fetch Market Data & Create Price Record
+    if (!isNaN(price) && price > 0) {
+        const { getMarketAnalysis } = await import("@/app/lib/naver");
+        const analysis = await getMarketAnalysis(name, price, unit, amount);
+
+        // Calculate Unit Price for storage/comparison
+        let unitPrice = price;
+        if (amount > 0) {
+            unitPrice = Math.round(price / amount);
+        }
+
+        await savePriceLogic((session.user as any).id, ingredientId, {
+            price: unitPrice, // Save Unit Price
+            totalPrice: price, // Save Total Paid
+            unit,
+            amount,
+            source: "직접 입력",
+            marketData: analysis
+        });
+    }
 
     revalidatePath("/ingredients");
     revalidatePath("/");
@@ -114,7 +157,22 @@ export async function createIngredientPrice(ingredientId: number, formData: Form
 
     if (!price || !unit || !source) throw new Error("All fields are required");
 
-    await savePriceLogic(userId, ingredientId, { price, totalPrice, amount, unit, source });
+    // Calculate Unit Price
+    let unitPrice = price;
+    if (amount && amount > 0) {
+        unitPrice = Math.round(price / amount);
+    }
+
+    // Ensure totalPrice is set (it's the input price)
+    const finalTotalPrice = totalPrice || price;
+
+    await savePriceLogic(userId, ingredientId, {
+        price: unitPrice,
+        totalPrice: finalTotalPrice,
+        amount: amount || 1,
+        unit,
+        source
+    });
 
     revalidatePath(`/ingredients/${ingredientId}`);
     revalidatePath("/notifications");
@@ -154,6 +212,7 @@ export async function createBulkIngredientPrices(items: {
     source: string;
     amount?: number;
     originalPrice?: number;
+    marketData?: any;
 }[]) {
     const session = await getServerSession(authOptions);
     if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
@@ -182,18 +241,24 @@ export async function createBulkIngredientPrices(items: {
                         // @ts-ignore
                         userId,
                         name: item.name,
-                        unit: item.unit,
+                        unit: item.unit || "개",
                     },
                 });
                 ingredientId = newIngredient.id;
             }
 
+            // Ensure numbers are valid
+            const safePrice = isNaN(item.price) ? 0 : item.price;
+            const safeTotalPrice = item.originalPrice && !isNaN(item.originalPrice) ? item.originalPrice : null;
+            const safeAmount = item.amount && !isNaN(item.amount) ? item.amount : null;
+
             await savePriceLogic(userId, ingredientId, {
-                price: item.price,
-                totalPrice: item.originalPrice,
-                amount: item.amount,
-                unit: item.unit,
-                source: item.source
+                price: safePrice,
+                totalPrice: safeTotalPrice,
+                amount: safeAmount,
+                unit: item.unit || "개",
+                source: item.source || "Unknown",
+                marketData: item.marketData || null // Pass market data
             });
             successCount++;
         } catch (error) {
@@ -206,4 +271,58 @@ export async function createBulkIngredientPrices(items: {
     revalidatePath("/");
 
     return { success: true, count: successCount };
+}
+
+// --- New Features: Market Price Checks ---
+
+export async function checkMarketPrice(name: string, price: number, unit: string, amount: number) {
+    const { getMarketAnalysis } = await import("@/app/lib/naver");
+    const analysis = await getMarketAnalysis(name, price, unit, amount);
+    return analysis;
+}
+
+export async function refreshIngredientPrice(ingredientId: number) {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
+    const userId = (session.user as any).id;
+
+    // 1. Get latest price record
+    const ingredient = await prisma.ingredient.findUnique({
+        where: { id: ingredientId },
+        include: {
+            prices: {
+                orderBy: { recordedAt: "desc" },
+                take: 1
+            }
+        }
+    });
+
+    if (!ingredient || ingredient.prices.length === 0) return null;
+
+    const latestPrice = ingredient.prices[0];
+
+    // 2. Fetch fresh market data
+    const { getMarketAnalysis } = await import("@/app/lib/naver");
+    const analysis = await getMarketAnalysis(
+        ingredient.name,
+        latestPrice.price,
+        latestPrice.unit,
+        latestPrice.amount || 1
+    );
+
+    if (analysis) {
+        // 3. Update the existing price record with new market data
+        await prisma.ingredientPrice.update({
+            where: { id: latestPrice.id },
+            data: {
+                marketData: analysis
+            }
+        });
+
+        revalidatePath("/");
+        revalidatePath("/ingredients");
+        return analysis;
+    }
+
+    return null;
 }
