@@ -255,12 +255,38 @@ export async function applyPresetToRecipe(recipeId: number) {
                     continue;
                 }
 
+                // [UNIT CONVERSION]
+                let finalAmount = item.amount;
+                // If user ingredient unit differs from preset unit
+                if (ingredient.unit !== item.unit) {
+                    console.log(`[ApplyPreset] Unit mismatch for ${item.name}: Preset(${item.unit}) vs User(${ingredient.unit})`);
+
+                    const u1 = item.unit.toLowerCase(); // Preset unit
+                    const u2 = ingredient.unit.toLowerCase(); // User unit
+
+                    if (u1 === 'g' && u2 === 'kg') {
+                        finalAmount = item.amount / 1000;
+                    } else if (u1 === 'kg' && u2 === 'g') {
+                        finalAmount = item.amount * 1000;
+                    }
+                    // Special case: "단" (Bundle) 
+                    // Heuristic: 1 Bundle ≈ 800g (Typical for Green Onion/Daepa)
+                    else if (u1 === 'g' && (u2 === '단' || u2 === 'bundle')) {
+                        finalAmount = item.amount / 800;
+                    }
+                    else if (u1 === 'kg' && (u2 === '단' || u2 === 'bundle')) {
+                        finalAmount = item.amount / 0.8;
+                    }
+
+                    console.log(`   -> Converted amount: ${item.amount} ${u1} -> ${finalAmount} ${u2}`);
+                }
+
                 // @ts-ignore
                 await prisma.recipeIngredient.create({
                     data: {
                         recipeId: recipe.id,
                         ingredientId: ingredient.id,
-                        amount: item.amount * (recipe.servings || 1)
+                        amount: finalAmount * (recipe.servings || 1)
                     }
                 });
             } catch (innerErr) {
