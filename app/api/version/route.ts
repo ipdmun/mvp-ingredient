@@ -4,25 +4,28 @@ import { prisma } from '@/app/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    let count = -1;
+    let dbStatus = 'Unknown';
+    let errorMsg = null;
+
     try {
-        // Try a simple query to check DB connection
-        const count = await prisma.ingredient.count();
-        return NextResponse.json({
-            version: '0.1.13',
-            dbStatus: 'Connected',
-            ingredientCount: count,
-            timestamp: new Date().toISOString()
-        });
+        count = await prisma.ingredient.count();
+        dbStatus = 'Connected';
     } catch (error: any) {
-        return NextResponse.json({
-            version: '0.1.13',
-            dbStatus: 'Failed',
-            error: error.message,
-            env: {
-                hasDbUrl: !!process.env.DATABASE_URL,
-                nodeEnv: process.env.NODE_ENV
-            },
-            timestamp: new Date().toISOString()
-        }, { status: 500 });
+        dbStatus = 'Failed';
+        errorMsg = error.message;
     }
+
+    return NextResponse.json({
+        version: '0.1.16',
+        dbStatus,
+        env: {
+            hasDbUrl: !!process.env.DATABASE_URL,
+            hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET, // CRITICAL CHECK
+            nodeEnv: process.env.NODE_ENV
+        },
+        ingredientCount: count,
+        error: errorMsg,
+        timestamp: new Date().toISOString()
+    });
 }
