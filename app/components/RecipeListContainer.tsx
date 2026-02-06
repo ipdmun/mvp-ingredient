@@ -74,9 +74,20 @@ export default function RecipeListContainer() {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {recipes.map((recipe: any) => {
                     const isDoenjang = recipe.name.includes("된장찌개");
-                    const aiPrompt = isDoenjang
-                        ? `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`
-                        : `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
+                    const isKimchi = recipe.name.includes("김치찌개");
+
+                    let aiPrompt = `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
+                    if (isDoenjang) {
+                        aiPrompt = `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`;
+                    } else if (isKimchi) {
+                        aiPrompt = "Kimchi Jjigae korean stew delicious red spicy tofu pork meat realistic photography 4k high quality warm lighting equivalent to 50mm lens";
+                    }
+
+                    // Force AI image for known types to avoid DB legacy URL issues
+                    const useAiImage = isDoenjang || isKimchi;
+                    const displayUrl = useAiImage
+                        ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`
+                        : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`);
 
                     return (
                         <div key={recipe.id} className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 transition-all hover:shadow-md active:scale-98 group">
@@ -84,7 +95,7 @@ export default function RecipeListContainer() {
                                 {/* Image Area */}
                                 <div className="aspect-[2/1] w-full bg-gray-100 relative overflow-hidden">
                                     <img
-                                        src={isDoenjang ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}` : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`)}
+                                        src={displayUrl}
                                         alt={recipe.name}
                                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                                         onError={(e) => {

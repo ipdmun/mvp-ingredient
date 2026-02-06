@@ -191,10 +191,21 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
     };
 
     // [AI Prompt Logic]
+    // [AI Prompt Logic]
     const isDoenjang = recipe.name.includes("된장찌개");
-    const aiPrompt = isDoenjang
-        ? `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`
-        : `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
+    const isKimchi = recipe.name.includes("김치찌개");
+
+    let aiPrompt = `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
+    if (isDoenjang) {
+        aiPrompt = `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`;
+    } else if (isKimchi) {
+        aiPrompt = "Kimchi Jjigae korean stew delicious red spicy tofu pork meat realistic photography 4k high quality warm lighting equivalent to 50mm lens";
+    }
+
+    const useAiImage = isDoenjang || isKimchi;
+    const displayUrl = useAiImage
+        ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`
+        : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`);
 
     return (
         <main className="min-h-screen bg-gray-50/50 pb-24">
@@ -246,7 +257,7 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
             {/* AI Generated Image Header */}
             <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
                 <img
-                    src={isDoenjang ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}` : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`)}
+                    src={displayUrl}
                     alt={recipe.name}
                     className="h-full w-full object-cover"
                     onError={(e) => {
@@ -263,7 +274,7 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                     <p className="text-xs font-medium opacity-80 mb-1">Recipe Details</p>
                     <h2 className="text-3xl font-black shadow-black drop-shadow-md flex items-end gap-2">
                         {recipe.name}
-                        <span className="text-xs font-bold opacity-60 bg-black/20 px-2 py-0.5 rounded-full mb-1">v0.1.2</span>
+                        <span className="text-xs font-bold opacity-60 bg-black/20 px-2 py-0.5 rounded-full mb-1">v0.1.3</span>
                     </h2>
                 </div>
             </div>
