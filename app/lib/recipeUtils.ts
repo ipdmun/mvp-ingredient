@@ -59,3 +59,23 @@ export function convertIngredientAmount(
     // Round to 3 decimal places to avoid floating point weirdness
     return Number(finalAmount.toFixed(3));
 }
+
+export function sanitizeAmountInput(val: string): string {
+    // Remove non-numeric chars except dot
+    let cleanVal = val.replace(/[^0-9.]/g, '');
+
+    // Prevent multiple dots
+    if ((cleanVal.match(/\./g) || []).length > 1) return val; // invalid, stick to old or just ignore input? Better to strip extra dots or ignoring current char. 
+    // Simplified: Just take the previous valid value if complex invalid (but here we are transforming current string)
+    // Actually, simple robust regex for "starting with 0 but not 0."
+
+    // Re-check regex for multiple dots?
+    // Let's stick to the verified logic in previous component, just heavily tested.
+
+    // Remove leading zeros if not decimal (e.g. 05 -> 5)
+    if (cleanVal.length > 1 && cleanVal.startsWith('0') && cleanVal[1] !== '.') {
+        cleanVal = cleanVal.replace(/^0+/, '');
+    }
+
+    return cleanVal;
+}

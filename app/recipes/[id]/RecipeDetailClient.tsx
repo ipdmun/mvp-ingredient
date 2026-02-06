@@ -7,6 +7,7 @@ import AddRecipeIngredientModal from "@/app/components/AddRecipeIngredientModal"
 import RecipeMarginAnalysis from "@/app/components/RecipeMarginAnalysis";
 import { deleteRecipe, deleteRecipeIngredient, updateRecipeIngredientAmount, applyPresetToRecipe, updateRecipe, deleteRecipeIngredients } from "@/app/recipes/actions";
 import { useRouter } from "next/navigation";
+import { sanitizeAmountInput } from "@/app/lib/recipeUtils";
 
 interface RecipeDetailClientProps {
     recipe: any;
@@ -389,17 +390,8 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                                     value={editAmount}
                                                     onFocus={(e) => e.currentTarget.select()}
                                                     onChange={(e) => {
-                                                        let val = e.target.value;
-                                                        // Remove non-numeric chars except dot
-                                                        val = val.replace(/[^0-9.]/g, '');
-                                                        // Prevent multiple dots
-                                                        if ((val.match(/\./g) || []).length > 1) return;
-
-                                                        // Remove leading zeros if not decimal (e.g. 05 -> 5)
-                                                        if (val.length > 1 && val.startsWith('0') && val[1] !== '.') {
-                                                            val = val.replace(/^0+/, '');
-                                                        }
-                                                        setEditAmount(val);
+                                                        const cleanVal = sanitizeAmountInput(e.target.value);
+                                                        setEditAmount(cleanVal);
                                                     }}
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') handleUpdateAmount(item.id);
