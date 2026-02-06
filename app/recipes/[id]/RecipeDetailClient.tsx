@@ -261,7 +261,10 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-4 left-4 text-white">
                     <p className="text-xs font-medium opacity-80 mb-1">Recipe Details</p>
-                    <h2 className="text-3xl font-black shadow-black drop-shadow-md">{recipe.name}</h2>
+                    <h2 className="text-3xl font-black shadow-black drop-shadow-md flex items-end gap-2">
+                        {recipe.name}
+                        <span className="text-xs font-bold opacity-60 bg-black/20 px-2 py-0.5 rounded-full mb-1">v0.1.2</span>
+                    </h2>
                 </div>
             </div>
 
