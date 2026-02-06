@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, ChefHat, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Plus, ChefHat, ArrowRight, Loader2, AlertCircle, Pencil, Check, X } from "lucide-react";
 import AddRecipeModalClient from "../recipes/AddRecipeModalClient";
 import DeleteRecipeButton from "@/app/components/DeleteRecipeButton";
+import { updateRecipe } from "@/app/recipes/actions";
 
 export default function RecipeListContainer() {
     const [recipes, setRecipes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    // Editing State
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editName, setEditName] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
 
     const fetchRecipes = async () => {
         try {
@@ -35,8 +41,36 @@ export default function RecipeListContainer() {
         fetchRecipes();
     }, []);
 
-    // Also listen for a global event or valid re-fetch trigger if needed
-    // For now, simpler is better.
+    const startEditing = (e: React.MouseEvent, recipe: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingId(recipe.id);
+        setEditName(recipe.name);
+    };
+
+    const cancelEditing = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingId(null);
+        setEditName("");
+    };
+
+    const saveName = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!editName.trim() || !editingId) return;
+
+        setIsSaving(true);
+        try {
+            await updateRecipe(editingId, { name: editName });
+            await fetchRecipes(); // Refresh list
+            setEditingId(null);
+        } catch (error) {
+            alert("수정 실패");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -76,6 +110,11 @@ export default function RecipeListContainer() {
                     const isDoenjang = recipe.name.includes("된장찌개");
                     const isKimchi = recipe.name.includes("김치찌개");
 
+                    // Fallback Images (High quality Unsplash)
+                    let fallbackUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800"; // Default food
+                    if (isDoenjang) fallbackUrl = "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?auto=format&fit=crop&q=80&w=800";
+                    if (isKimchi) fallbackUrl = "https://images.unsplash.com/photo-1617093228322-97cb355a6fa4?auto=format&fit=crop&q=80&w=800";
+
                     let aiPrompt = `${recipe.name} illustration food art drawing hand-drawn warm cozy delicious korean food top view minimal`;
                     if (isDoenjang) {
                         aiPrompt = "Doenjang Jjigae illustration, warm cozy korean food art, hand drawn style, soybean paste stew with zucchini and tofu, top view, minimal background, high quality";
@@ -99,9 +138,15 @@ export default function RecipeListContainer() {
                                         alt={recipe.name}
                                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                                         onError={(e) => {
-                                            // Fallback if AI image fails
-                                            e.currentTarget.style.display = 'none';
-                                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                            // Fallback to Unsplash if AI fails
+                                            const target = e.currentTarget;
+                                            if (target.src !== fallbackUrl) {
+                                                target.src = fallbackUrl;
+                                            } else {
+                                                // If even fallback fails, hide it
+                                                target.style.display = 'none';
+                                                target.nextElementSibling?.classList.remove('hidden');
+                                            }
                                         }}
                                     />
                                     {/* CheckHat Fallback (Hidden by default, shown on error) */}
@@ -109,12 +154,48 @@ export default function RecipeListContainer() {
                                         <ChefHat className="h-12 w-12 opacity-20" />
                                     </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                    <div className="absolute bottom-4 left-4 text-white">
-                                        <h2 className="text-xl font-black shadow-black drop-shadow-md flex items-end gap-1">
-                                            {recipe.name}
-                                            <span className="text-[10px] font-bold opacity-70 bg-black/30 px-1.5 py-0.5 rounded-full mb-0.5">v0.1.4</span>
-                                        </h2>
-                                        <p className="text-xs font-medium opacity-90">{recipe.description || "설명 없음"}</p>
+
+                                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                                        {editingId === recipe.id ? (
+                                            <div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="flex-1 bg-white/90 text-black text-sm px-2 py-1 rounded focus:outline-none"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={saveName}
+                                                    className="p-1 bg-green-500 rounded text-white hover:bg-green-600"
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={cancelEditing}
+                                                    className="p-1 bg-gray-500 rounded text-white hover:bg-gray-600"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-end justify-between w-full">
+                                                <div>
+                                                    <h2 className="text-xl font-black shadow-black drop-shadow-md flex items-end gap-1 group/title">
+                                                        {recipe.name}
+                                                        <button
+                                                            onClick={(e) => startEditing(e, recipe)}
+                                                            className="opacity-0 group-hover/title:opacity-100 transition-opacity p-1 hover:bg-white/20 rounded ml-1"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5 text-white/80" />
+                                                        </button>
+                                                    </h2>
+                                                    <p className="text-xs font-medium opacity-90 truncate max-w-[200px]">{recipe.description || "설명 없음"}</p>
+                                                </div>
+                                                <span className="text-[10px] font-bold opacity-70 bg-black/30 px-1.5 py-0.5 rounded-full mb-0.5">v0.1.4</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -141,16 +222,17 @@ export default function RecipeListContainer() {
                                 </div>
                             </Link>
 
-                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
-                                {/* Passing onSuccess to trigger refresh */}
-                                <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={fetchRecipes} />
-                            </div>
+                            {/* Only show delete button when NOT editing to avoid clutter */}
+                            {editingId !== recipe.id && (
+                                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+                                    <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={fetchRecipes} />
+                                </div>
+                            )}
                         </div>
                     );
                 })}
 
                 {/* Add New Button Card */}
-                {/* Pass onSuccess to fetchRecipes */}
                 <AddRecipeModalClient onAddSuccess={fetchRecipes} />
             </div>
 
