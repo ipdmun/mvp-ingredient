@@ -110,7 +110,10 @@ export default function RecipeListContainer() {
                                     </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                                     <div className="absolute bottom-4 left-4 text-white">
-                                        <h2 className="text-xl font-black shadow-black drop-shadow-md">{recipe.name}</h2>
+                                        <h2 className="text-xl font-black shadow-black drop-shadow-md flex items-end gap-1">
+                                            {recipe.name}
+                                            <span className="text-[10px] font-bold opacity-70 bg-black/30 px-1.5 py-0.5 rounded-full mb-0.5">v0.1.4</span>
+                                        </h2>
                                         <p className="text-xs font-medium opacity-90">{recipe.description || "설명 없음"}</p>
                                     </div>
                                 </div>
