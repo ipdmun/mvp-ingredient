@@ -58,21 +58,67 @@ interface PresetIngredient {
 
 const RECIPE_PRESETS: Record<string, { imageUrl: string, ingredients: PresetIngredient[] }> = {
     "된장찌개": {
-        imageUrl: "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?auto=format&fit=crop&q=80&w=800",
+        imageUrl: "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&q=80&w=800",
         ingredients: [
             { name: "된장", amount: 30, unit: "g" },
             { name: "두부", amount: 100, unit: "g" },
             { name: "무", amount: 50, unit: "g" },
             { name: "대파", amount: 20, unit: "g" },
+            { name: "애호박", amount: 30, unit: "g" },
+            { name: "청양고추", amount: 1, unit: "개" },
+        ]
+    },
+    "된장국": {
+        imageUrl: "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&q=80&w=800",
+        ingredients: [
+            { name: "된장", amount: 20, unit: "g" },
+            { name: "두부", amount: 50, unit: "g" },
+            { name: "대파", amount: 15, unit: "g" },
+            { name: "시금치", amount: 50, unit: "g" },
         ]
     },
     "김치찌개": {
-        imageUrl: "https://images.unsplash.com/photo-1617093228322-97cb355a6fa4?auto=format&fit=crop&q=80&w=800",
+        imageUrl: "https://images.unsplash.com/photo-1583225214464-9296fae5dcd4?auto=format&fit=crop&q=80&w=800",
         ingredients: [
             { name: "김치", amount: 150, unit: "g" },
             { name: "돼지고기", amount: 100, unit: "g" },
             { name: "두부", amount: 100, unit: "g" },
             { name: "대파", amount: 20, unit: "g" },
+            { name: "다진마늘", amount: 10, unit: "g" },
+        ]
+    },
+    "부대찌개": {
+        imageUrl: "https://images.unsplash.com/photo-1583225214464-9296fae5dcd4?auto=format&fit=crop&q=80&w=800",
+        ingredients: [
+            { name: "햄", amount: 50, unit: "g" },
+            { name: "소세지", amount: 50, unit: "g" },
+            { name: "김치", amount: 60, unit: "g" },
+            { name: "라면사리", amount: 0.5, unit: "개" },
+            { name: "두부", amount: 50, unit: "g" },
+            { name: "대파", amount: 20, unit: "g" },
+            { name: "베이크드빈스", amount: 30, unit: "g" },
+        ]
+    },
+    "미역국": {
+        imageUrl: "https://images.unsplash.com/photo-1596701062351-8e27ca0ba430?auto=format&fit=crop&q=80&w=800",
+        ingredients: [
+            { name: "미역(건조)", amount: 10, unit: "g" },
+            { name: "소고기(국거리)", amount: 60, unit: "g" },
+            { name: "다진마늘", amount: 10, unit: "g" },
+            { name: "국간장", amount: 15, unit: "ml" },
+            { name: "참기름", amount: 5, unit: "ml" },
+        ]
+    },
+    "김밥": {
+        imageUrl: "https://images.unsplash.com/photo-1616422312675-9bad4d930fe6?auto=format&fit=crop&q=80&w=800",
+        ingredients: [
+            { name: "쌀", amount: 80, unit: "g" },
+            { name: "김밥김", amount: 1, unit: "장" },
+            { name: "햄", amount: 15, unit: "g" },
+            { name: "단무지", amount: 20, unit: "g" },
+            { name: "당근", amount: 15, unit: "g" },
+            { name: "시금치", amount: 15, unit: "g" },
+            { name: "달걀", amount: 30, unit: "g" },
         ]
     },
     "육전 국밥": {
