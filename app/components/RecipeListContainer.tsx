@@ -76,11 +76,11 @@ export default function RecipeListContainer() {
                     const isDoenjang = recipe.name.includes("된장찌개");
                     const isKimchi = recipe.name.includes("김치찌개");
 
-                    let aiPrompt = `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
+                    let aiPrompt = `${recipe.name} illustration food art drawing hand-drawn warm cozy delicious korean food top view minimal`;
                     if (isDoenjang) {
-                        aiPrompt = `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`;
+                        aiPrompt = "Doenjang Jjigae illustration, warm cozy korean food art, hand drawn style, soybean paste stew with zucchini and tofu, top view, minimal background, high quality";
                     } else if (isKimchi) {
-                        aiPrompt = "Kimchi Jjigae korean stew delicious red spicy tofu pork meat realistic photography 4k high quality warm lighting equivalent to 50mm lens";
+                        aiPrompt = "Kimchi Jjigae illustration, warm cozy korean food art, hand drawn style, delicious red stew with tofu and pork, top view, soft lighting, pastel colors, high quality";
                     }
 
                     // Force AI image for known types to avoid DB legacy URL issues
