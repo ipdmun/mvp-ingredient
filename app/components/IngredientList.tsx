@@ -178,7 +178,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 {item.name}
                                             </div>
                                             <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded uppercase">
-                                                {item.unit}
+                                                {item.unit.toLowerCase()}
                                             </span>
                                         </div>
                                     </div>

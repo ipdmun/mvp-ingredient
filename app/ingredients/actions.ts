@@ -7,7 +7,7 @@ import { authOptions } from "@/app/lib/auth";
 
 // --- Internal Logic (No session checks, no revalidatePath) ---
 
-async function savePriceLogic(userId: string, ingredientId: number, data: {
+export async function savePriceLogic(userId: string, ingredientId: number, data: {
     price: number;
     totalPrice?: number | null;
     amount?: number | null;

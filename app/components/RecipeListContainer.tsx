@@ -77,13 +77,20 @@ export default function RecipeListContainer() {
                         <Link href={`/recipes/${recipe.id}`} className="block">
                             {/* Image Area */}
                             <div className="aspect-[2/1] w-full bg-gray-100 relative overflow-hidden">
-                                {recipe.imageUrl ? (
-                                    <img src={recipe.imageUrl} alt={recipe.name} className="h-full w-full object-cover" />
-                                ) : (
-                                    <div className="h-full w-full flex items-center justify-center text-gray-300">
-                                        <ChefHat className="h-12 w-12 opacity-20" />
-                                    </div>
-                                )}
+                                <img
+                                    src={recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(recipe.name)}%20korean%20food%20authentic%20meal?width=800&height=400&nologo=true&seed=${recipe.id}`}
+                                    alt={recipe.name}
+                                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    onError={(e) => {
+                                        // Fallback if AI image fails
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                />
+                                {/* CheckHat Fallback (Hidden by default, shown on error) */}
+                                <div className="hidden h-full w-full flex items-center justify-center text-gray-300 bg-gray-100 absolute inset-0">
+                                    <ChefHat className="h-12 w-12 opacity-20" />
+                                </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                                 <div className="absolute bottom-4 left-4 text-white">
                                     <h2 className="text-xl font-black shadow-black drop-shadow-md">{recipe.name}</h2>

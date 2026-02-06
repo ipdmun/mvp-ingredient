@@ -109,9 +109,9 @@ export default function AddPriceForm({ ingredientId, unit }: Props) {
                 }}
                 className="space-y-4"
             >
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-700">가격</label>
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1">
+                        <label className="mb-1 block text-xs font-medium text-gray-700">총 가격</label>
                         <input
                             ref={priceInputRef}
                             name="price"
@@ -121,11 +121,23 @@ export default function AddPriceForm({ ingredientId, unit }: Props) {
                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
                         />
                     </div>
-                    <div>
+                    <div className="col-span-1">
+                        <label className="mb-1 block text-xs font-medium text-gray-700">구매 수량</label>
+                        <input
+                            name="amount"
+                            type="number"
+                            step="0.01"
+                            placeholder="1"
+                            defaultValue="1"
+                            required
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+                        />
+                    </div>
+                    <div className="col-span-1">
                         <label className="mb-1 block text-xs font-medium text-gray-700">단위</label>
                         <input
                             name="unit"
-                            defaultValue={unit}
+                            defaultValue={unit.toLowerCase()}
                             required
                             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm border-gray-100 bg-gray-50 text-gray-500"
                             readOnly

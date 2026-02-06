@@ -6,16 +6,22 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
 
     if (!naverClientId || !naverClientSecret) return null;
 
-    // Keywords to exclude (Machines, Seeds, etc.)
-    const EXCLUDED_KEYWORDS = ["기계", "이절기", "다듬기", "씨앗", "모종", "비료", "화분", "농약", "제초제", "절단기"];
-
-    // Allowed Categories (Must be Food related)
-    const ALLOWED_CATEGORIES = ["식품", "생활/건강"]; // 생활/건강 is sometimes used for health foods, but mostly 식품 is key.
+    // Keywords to exclude (Machines, Seeds, Snacks, Processed foods, etc.)
+    const EXCLUDED_KEYWORDS = [
+        "기계", "이절기", "다듬기", "씨앗", "모종", "비료", "화분", "농약", "제초제", "절단기", // Agriculture tools
+        "메이커", "제조기", "슬라이서", "채칼", "거치대", "받침대", "모형", "장난감", "껍질", "세척기", // Kitchen tools
+        "과자", "스낵", "칩", "안주", "말랭이", "젤리", "사탕", "초콜릿", "쫀드기", "쫄면", "떡볶이", "빵", "케이크", // Processed Snacks (ZZONDEUGI added)
+        "분말", "가루", "파우더", "엑기스", "농축", "즙", "청", "오일", "향", "맛", "시럽", // Processed Ingredients & Flavorings
+        "소스", "양념", "드레싱", "시즈닝", // Sauces
+        "추억", "간식", "주전부리", "답례품", "선물세트", // Marketing keywords for snacks
+        "곤약", "실곤약", "면", "누들", "국수", "다이어트", "체중", // Diet foods (Tofu confusion prevention)
+        "식당용", "업소용" // Bulk
+    ];
 
     try {
         const query = encodeURIComponent(queryName);
-        // display: 20 (Fetch more to filter out bad results), sort: 'asc' (lowest price)
-        const apiRes = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${query}&display=20&start=1&sort=asc`, {
+        // display: 40 (Increased to allow better filtering), sort: 'asc' (lowest price)
+        const apiRes = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${query}&display=40&start=1&sort=asc`, {
             headers: {
                 "X-Naver-Client-Id": naverClientId,
                 "X-Naver-Client-Secret": naverClientSecret
@@ -31,20 +37,31 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
             // Filter Loop
             for (const item of data.items) {
                 const title = item.title.toLowerCase();
-                const category1 = item.category1;
+                // Naver returns category1, category2, category3, category4
+                const categories = [item.category1, item.category2, item.category3, item.category4].filter(Boolean).join(" ");
                 const price = parseInt(item.lprice, 10);
 
-                // 1. Minimum Price Check (10 won is usually an error or accessory)
+                // 1. Minimum Price Check
                 if (price < 100) continue;
 
                 // 2. Keyword Exclusion
                 if (EXCLUDED_KEYWORDS.some(keyword => title.includes(keyword))) continue;
 
                 // 3. Category Check
-                // Note: category1 usually contains "식품" for ingredients.
-                if (!category1.includes("식품") && !category1.includes("농산물") && !category1.includes("축산물") && !category1.includes("수산물")) {
-                    // Fallback: If it's "생활/건강" but title contains the query name, maybe ok? 
-                    // But for "vegetables", it MUST be food.
+                // MUST contain food-related keywords in the category path.
+                // Strict check: If it contains "주방용품", "가전", "생활", it's risky unless "식품" is explicitly there.
+                // Safest bet: Must include "식품" or "농산물" or "축산물" or "수산물".
+                if (!categories.includes("식품") && !categories.includes("농산물") && !categories.includes("축산물") && !categories.includes("수산물")) {
+                    continue;
+                }
+
+                // 4. Title Match Check (CRITICAL FIX)
+                // The title MUST contain the query name.
+                // Remove spaces for better matching (e.g. "돼지고기" matching "돼지 고기")
+                const normalizedTitle = title.replace(/\s+/g, "");
+                const normalizedQuery = queryName.replace(/\s+/g, "").toLowerCase();
+
+                if (!normalizedTitle.includes(normalizedQuery)) {
                     continue;
                 }
 

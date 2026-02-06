@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Plus, Trash2, Check, X as CloseIcon, Wand2, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, X as CloseIcon, Wand2, Loader2, ChefHat } from "lucide-react";
 import Link from "next/link";
 import AddRecipeIngredientModal from "@/app/components/AddRecipeIngredientModal";
 import RecipeMarginAnalysis from "@/app/components/RecipeMarginAnalysis";
-import { deleteRecipe, deleteRecipeIngredient, updateRecipeIngredientAmount, applyPresetToRecipe, updateRecipe } from "@/app/recipes/actions";
+import { deleteRecipe, deleteRecipeIngredient, updateRecipeIngredientAmount, applyPresetToRecipe, updateRecipe, deleteRecipeIngredients } from "@/app/recipes/actions";
 import { useRouter } from "next/navigation";
 
 interface RecipeDetailClientProps {
@@ -18,9 +18,14 @@ interface RecipeDetailClientProps {
 export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDataChange }: RecipeDetailClientProps) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [editAmount, setEditAmount] = useState<number | "">("");
+    const [editAmount, setEditAmount] = useState<string>("");
     const [isEditingPrice, setIsEditingPrice] = useState(false);
     const [priceInput, setPriceInput] = useState<number | "">("");
+
+    // [New Features]
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [nameInput, setNameInput] = useState("");
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
     const router = useRouter();
@@ -55,6 +60,8 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
         try {
             const result = await deleteRecipe(recipe.id);
             if (result.success) {
+                // 삭제 후 목록으로 이동 시 확실하게 갱신
+                router.refresh();
                 router.push("/recipes");
             } else {
                 alert(result.error || "삭제에 실패했습니다.");
@@ -102,7 +109,7 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
     }
 
     async function handleUpdateAmount(riId: number) {
-        if (!editAmount || isProcessing) return;
+        if (editAmount === "" || isProcessing) return;
         setIsProcessing(true);
         try {
             const result = await updateRecipeIngredientAmount(riId, Number(editAmount));
@@ -138,15 +145,93 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
         }
     }
 
+    async function handleUpdateName() {
+        if (!nameInput.trim() || isProcessing) return;
+        setIsProcessing(true);
+        try {
+            const result = await updateRecipe(recipe.id, { name: nameInput.trim() });
+            if (result.success) {
+                setIsEditingName(false);
+                refreshData();
+            } else {
+                alert(result.error || "이름 수정 실패");
+            }
+        } catch (e: any) {
+            alert("오류: " + e.message);
+        } finally {
+            setIsProcessing(false);
+        }
+    }
+
+    async function handleBulkDelete() {
+        if (selectedIds.length === 0) return;
+        if (!confirm(`선택한 ${selectedIds.length}개의 재료를 삭제하시겠습니까?`)) return;
+
+        setIsProcessing(true);
+        try {
+            const result = await deleteRecipeIngredients(selectedIds);
+            if (result.success) {
+                setSelectedIds([]);
+                refreshData();
+            } else {
+                alert(result.error || "일괄 삭제 실패");
+            }
+        } catch (e: any) {
+            alert("오류: " + e.message);
+        } finally {
+            setIsProcessing(false);
+        }
+    }
+
+    const toggleSelection = (id: number) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(pix => pix !== id) : [...prev, id]
+        );
+    };
+
+    // [AI Prompt Logic]
+    const isDoenjang = recipe.name.includes("된장찌개");
+    const aiPrompt = isDoenjang
+        ? `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`
+        : `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
+
     return (
         <main className="min-h-screen bg-gray-50/50 pb-24">
             {/* Header */}
             <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200/60 bg-white/80 px-4 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                    <Link href="/recipes" className="rounded-full p-2 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3 flex-1 mr-4">
+                    <Link href="/recipes" className="rounded-full p-2 hover:bg-gray-100 transition-colors shrink-0">
                         <ArrowLeft className="h-5 w-5 text-gray-500" />
                     </Link>
-                    <h1 className="text-xl font-black text-gray-900">{recipe.name}</h1>
+
+                    {/* Editable Name */}
+                    {isEditingName ? (
+                        <div className="flex items-center gap-1 w-full max-w-xs">
+                            <input
+                                autoFocus
+                                value={nameInput}
+                                onChange={(e) => setNameInput(e.target.value)}
+                                className="w-full rounded-lg border-2 border-blue-200 px-3 py-1.5 text-xl font-black text-gray-900 focus:outline-none"
+                                placeholder="레시피 이름"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleUpdateName();
+                                    if (e.key === 'Escape') setIsEditingName(false);
+                                }}
+                            />
+                            <button onClick={handleUpdateName} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shrink-0"><Check className="h-4 w-4" /></button>
+                            <button onClick={() => setIsEditingName(false)} className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 shrink-0"><CloseIcon className="h-4 w-4" /></button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => {
+                                setNameInput(recipe.name);
+                                setIsEditingName(true);
+                            }}
+                            className="text-xl font-black text-gray-900 truncate hover:text-blue-600 hover:underline decoration-dashed decoration-2 underline-offset-4 text-left"
+                        >
+                            {recipe.name}
+                        </button>
+                    )}
                 </div>
                 <button
                     onClick={handleDeleteRecipe}
@@ -155,6 +240,28 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                 >
                     <Trash2 className="h-5 w-5" />
                 </button>
+            </div>
+
+            {/* AI Generated Image Header */}
+            <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
+                <img
+                    src={isDoenjang ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}` : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`)}
+                    alt={recipe.name}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                />
+                {/* Fallback Icon */}
+                <div className="hidden h-full w-full items-center justify-center bg-gray-200 absolute inset-0 text-gray-400">
+                    <ChefHat className="h-16 w-16 opacity-30" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                <div className="absolute bottom-4 left-4 text-white">
+                    <p className="text-xs font-medium opacity-80 mb-1">Recipe Details</p>
+                    <h2 className="text-3xl font-black shadow-black drop-shadow-md">{recipe.name}</h2>
+                </div>
             </div>
 
             <div className="p-4 space-y-6">
@@ -173,7 +280,8 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                         type="number"
                                         autoFocus
                                         value={priceInput}
-                                        onChange={(e) => setPriceInput(Number(e.target.value))}
+                                        onFocus={(e) => e.currentTarget.select()}
+                                        onChange={(e) => setPriceInput(e.target.value === "" ? "" : Number(e.target.value))}
                                         className="w-32 rounded-lg border-2 border-blue-200 px-2 py-1 text-xl font-black text-blue-600 focus:outline-none text-right"
                                         placeholder="0"
                                         onKeyDown={(e) => {
@@ -207,7 +315,18 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                 <div className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                         <h3 className="font-bold text-gray-800">레시피 구성 (재료)</h3>
-                        <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">{recipeIngredients.length} items</span>
+                        <div className="flex items-center gap-2">
+                            {selectedIds.length > 0 && (
+                                <button
+                                    onClick={handleBulkDelete}
+                                    className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 animate-in fade-in slide-in-from-right-2"
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                    {selectedIds.length}개 삭제
+                                </button>
+                            )}
+                            <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">{recipeIngredients.length} items</span>
+                        </div>
                     </div>
 
                     <div className="divide-y divide-gray-100 min-h-[100px] flex flex-col justify-center">
@@ -229,18 +348,34 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                     <div className="flex items-center gap-3">
                                         <button
                                             disabled={isProcessing}
-                                            onClick={() => handleDeleteIngredient(item.id)}
-                                            className="h-8 w-8 rounded-full bg-red-50 flex items-center justify-center text-red-400 opacity-100 hover:bg-red-100 disabled:opacity-30"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteIngredient(item.id);
+                                            }}
+                                            className="h-8 w-16 rounded-lg bg-red-100 flex items-center justify-center gap-1 text-red-600 hover:bg-red-200 disabled:opacity-30 transition-all shadow-sm"
                                         >
-                                            <Trash2 className="h-4 w-4" />
+                                            <Trash2 className="h-3 w-3" />
+                                            <span className="text-xs font-bold">삭제</span>
                                         </button>
-                                        <div>
-                                            <p className="font-bold text-gray-900 flex items-center gap-1.5">
-                                                {item.ingredient.name}
-                                            </p>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                                                AVG: {item.avgPrice.toLocaleString()}원/{item.ingredient.unit}
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            {/* Selection Checkbox */}
+                                            <div
+                                                onClick={(e) => { e.stopPropagation(); toggleSelection(item.id); }}
+                                                className={`w-5 h-5 rounded-md border-2 cursor-pointer flex items-center justify-center transition-all ${selectedIds.includes(item.id)
+                                                    ? "bg-blue-600 border-blue-600"
+                                                    : "border-gray-300 hover:border-blue-400 bg-white"
+                                                    }`}
+                                            >
+                                                {selectedIds.includes(item.id) && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900 flex items-center gap-1.5">
+                                                    {item.ingredient.name}
+                                                </p>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
+                                                    AVG: {item.avgPrice.toLocaleString()}원/{item.ingredient.unit.toLowerCase()}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -251,8 +386,19 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                                     autoFocus
                                                     type="number"
                                                     value={editAmount}
-                                                    onChange={(e) => setEditAmount(Number(e.target.value))}
-                                                    className="w-16 rounded-lg border-2 border-blue-200 px-2 py-1 text-sm font-bold text-blue-600 focus:outline-none"
+                                                    onFocus={(e) => e.currentTarget.select()}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        // Remove leading zeros resulting in "01", "05", etc. but keep "0", "0.", "0.5"
+                                                        const cleanVal = val.replace(/^0+(?=\d)/, '');
+                                                        setEditAmount(cleanVal);
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleUpdateAmount(item.id);
+                                                        if (e.key === 'Escape') setEditingId(null);
+                                                    }}
+                                                    placeholder="0"
+                                                    className="w-20 rounded-lg border-2 border-blue-200 px-2 py-1 text-sm font-bold text-blue-600 focus:outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-gray-300"
                                                 />
                                                 <button onClick={() => handleUpdateAmount(item.id)} className="rounded-lg bg-blue-600 p-1.5 text-white shadow-sm">
                                                     <Check className="h-3 w-3" />
@@ -266,12 +412,17 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                                 disabled={isProcessing}
                                                 onClick={() => {
                                                     setEditingId(item.id);
-                                                    setEditAmount(item.amount);
+                                                    // [Fix] If amount is 0, show empty string to leverage placeholder
+                                                    setEditAmount(item.amount === 0 ? "" : String(item.amount));
                                                 }}
-                                                className="font-black text-gray-900 hover:text-blue-600 hover:underline transition-all decoration-dotted flex items-center gap-1 disabled:pointer-events-none"
+                                                className="font-black text-gray-900 hover:text-blue-600 hover:underline transition-all decoration-dotted flex items-center gap-1 disabled:pointer-events-none justify-end w-full"
                                             >
-                                                {item.amount}{item.ingredient.unit}
+                                                <span className={item.amount === 0 ? "text-gray-300" : ""}>
+                                                    {item.amount === 0 ? "0" : item.amount}
+                                                </span>
+                                                <span className="text-gray-900">{item.ingredient.unit.toLowerCase()}</span>
                                             </button>
+
                                         )}
                                         <p className="text-xs font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md mt-0.5">
                                             {item.cost.toLocaleString()}원
@@ -296,18 +447,22 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                     totalCost={totalCost}
                     sellingPrice={recipe.sellingPrice ?? 0}
                 />
-            </div>
+            </div >
 
-            <AddRecipeIngredientModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                recipeId={recipe.id}
-                ingredients={ingredients}
-                onSuccess={() => {
-                    refreshData();
-                    setIsAddModalOpen(false);
-                }}
-            />
-        </main>
+            {
+                isAddModalOpen && (
+                    <AddRecipeIngredientModal
+                        isOpen={isAddModalOpen}
+                        onClose={() => setIsAddModalOpen(false)}
+                        recipeId={recipe.id}
+                        ingredients={ingredients || []}
+                        onSuccess={() => {
+                            refreshData();
+                            setIsAddModalOpen(false);
+                        }}
+                    />
+                )
+            }
+        </main >
     );
 }

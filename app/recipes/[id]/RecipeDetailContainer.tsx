@@ -23,7 +23,8 @@ export default function RecipeDetailContainer() {
                 throw new Error(json.error || "Failed");
             }
 
-            setData(json);
+            const safeIngredients = Array.isArray(json.ingredients) ? json.ingredients : [];
+            setData({ ...json, ingredients: safeIngredients });
             setError("");
         } catch (e: any) {
             console.error(e);
