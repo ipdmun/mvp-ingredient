@@ -48,7 +48,7 @@ export default async function RootLayout({
             <div className="flex items-center gap-8">
               <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-blue-600 hover:opacity-80">
                 🥗 성공식당
-                <span className="ml-1 text-[10px] bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-full border border-pink-200 align-top">v0.1.13</span>
+                <span className="ml-1 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 align-top">v0.1.14</span>
               </Link>
               <div className="hidden md:flex items-center gap-6">
                 <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-all hover:scale-105 active:scale-95">
