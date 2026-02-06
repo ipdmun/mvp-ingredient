@@ -6,6 +6,7 @@ import { Plus, ChefHat, ArrowRight, Loader2, AlertCircle, Pencil, Check, X } fro
 import AddRecipeModalClient from "../recipes/AddRecipeModalClient";
 import DeleteRecipeButton from "@/app/components/DeleteRecipeButton";
 import { updateRecipe } from "@/app/recipes/actions";
+import { KOREAN_FOOD_IMAGES } from "@/app/lib/koreanFoodImages";
 
 export default function RecipeListContainer() {
     const [recipes, setRecipes] = useState<any[]>([]);
