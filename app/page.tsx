@@ -1,6 +1,5 @@
 import { prisma } from "@/app/lib/prisma";
 import Link from "next/link";
-import { createIngredient } from "./ingredients/actions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./lib/auth";
 import { redirect } from "next/navigation";
@@ -10,24 +9,20 @@ import GlobalCameraFab from "./components/GlobalCameraFab";
 import AddIngredientModal from "./components/AddIngredientModal";
 
 export const runtime = "nodejs";
-
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !(session.user as any)?.id) {
-    redirect("/login");
-  }
-  const userId = (session.user as any).id;
-  // Ensure userId is clean
-  const cleanUserId = userId.trim();
-
-  // FIX: Prisma findMany(where: { userId }) is failing in production.
-  // Bypass: Fetch IDs via Raw SQL first, then fetch details via Prisma (to keep relations).
-  let ingredients: any[] = [];
   try {
-    ingredients = await prisma.ingredient.findMany({
+    const session = await getServerSession(authOptions);
+
+    if (!session || !(session.user as any)?.id) {
+      redirect("/login");
+    }
+    const userId = (session.user as any).id;
+    const cleanUserId = userId.trim();
+
+    // FIX: Prisma findMany(where: { userId }) is failing in production.
+    const ingredients = await prisma.ingredient.findMany({
       where: {
         userId: cleanUserId // Use cleaned ID
       },
@@ -39,48 +34,66 @@ export default async function Home() {
       },
       orderBy: { createdAt: "desc" },
     });
-  } catch (error) {
-    console.error("Home Page Data Fetch Error:", error);
-  }
 
-  return (
-    <div className="space-y-8 pb-24">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-            식자재 목록
-            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full border border-red-200">v0.1.14</span>
-          </h1>
-          <p className="mt-1 text-gray-500">관리 중인 식자재를 추가하고 확인하세요.</p>
-        </div>
-        <Link
-          href="/recipes"
-          className="flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-2.5 text-sm font-bold text-orange-600 transition-all hover:bg-orange-100 active:scale-95 shadow-sm border border-orange-100/50"
-        >
-          <ChefHat className="h-5 w-5" />
-          메뉴 관리
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <AddIngredientModal />
-      </div>
-
-      {/* 재료 리스트 (Client Component) */}
-      {
-        ingredients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-center">
-            <div className="rounded-full bg-gray-100 p-3">
-              <Package className="h-6 w-6 text-gray-400" />
-            </div>
-            <h3 className="mt-4 text-sm font-semibold text-gray-900">등록된 재료가 없습니다</h3>
-            <p className="mt-1 text-sm text-gray-500">위 폼을 사용하여 첫 번째 재료를 추가해보세요.</p>
+    return (
+      <div className="space-y-8 pb-24">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+              식자재 목록
+              <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full border border-orange-200">v0.1.15</span>
+            </h1>
+            <p className="mt-1 text-gray-500">관리 중인 식자재를 추가하고 확인하세요.</p>
           </div>
-        ) : (
-          <IngredientList initialIngredients={ingredients} />
-        )
-      }
-      <GlobalCameraFab ingredients={ingredients} />
-    </div >
-  );
+          <Link
+            href="/recipes"
+            className="flex items-center gap-2 rounded-xl bg-orange-50 px-4 py-2.5 text-sm font-bold text-orange-600 transition-all hover:bg-orange-100 active:scale-95 shadow-sm border border-orange-100/50"
+          >
+            <ChefHat className="h-5 w-5" />
+            메뉴 관리
+          </Link>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <AddIngredientModal userId={cleanUserId} />
+        </div>
+
+        {/* 재료 리스트 (Client Component) */}
+        {
+          ingredients.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-center">
+              <div className="rounded-full bg-gray-100 p-3">
+                <Package className="h-6 w-6 text-gray-400" />
+              </div>
+              <h3 className="mt-4 text-sm font-semibold text-gray-900">등록된 재료가 없습니다</h3>
+              <p className="mt-1 text-sm text-gray-500">위 폼을 사용하여 첫 번째 재료를 추가해보세요.</p>
+            </div>
+          ) : (
+            <IngredientList initialIngredients={ingredients} />
+          )
+        }
+        <GlobalCameraFab ingredients={ingredients} />
+      </div>
+    );
+  } catch (e: any) {
+    if (e.message === "NEXT_REDIRECT") {
+      throw e;
+    }
+    return (
+      <div className="p-8 bg-red-50 border border-red-200 rounded-xl m-4">
+        <h2 className="text-xl font-bold text-red-700 mb-4">CRITICAL SERVER ERROR (v0.1.15)</h2>
+        <div className="bg-white p-4 rounded border border-red-100 font-mono text-xs text-red-600 whitespace-pre-wrap break-all shadow-sm">
+          <p className="font-bold mb-2 text-black">Error Message:</p>
+          {e.toString()}
+          {e.stack && (
+            <>
+              <p className="font-bold mt-4 mb-2 text-black">Stack Trace:</p>
+              <div className="pl-4 border-l-2 border-red-200">{e.stack}</div>
+            </>
+          )}
+        </div>
+        <p className="mt-4 text-sm text-gray-600">이 화면을 캡쳐해서 보내주세요.</p>
+      </div>
+    );
+  }
 }
