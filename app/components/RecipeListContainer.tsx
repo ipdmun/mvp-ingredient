@@ -72,61 +72,68 @@ export default function RecipeListContainer() {
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {recipes.map((recipe: any) => (
-                    <div key={recipe.id} className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 transition-all hover:shadow-md active:scale-98 group">
-                        <Link href={`/recipes/${recipe.id}`} className="block">
-                            {/* Image Area */}
-                            <div className="aspect-[2/1] w-full bg-gray-100 relative overflow-hidden">
-                                <img
-                                    src={recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(recipe.name)}%20korean%20food%20authentic%20meal?width=800&height=400&nologo=true&seed=${recipe.id}`}
-                                    alt={recipe.name}
-                                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                    onError={(e) => {
-                                        // Fallback if AI image fails
-                                        e.currentTarget.style.display = 'none';
-                                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                    }}
-                                />
-                                {/* CheckHat Fallback (Hidden by default, shown on error) */}
-                                <div className="hidden h-full w-full flex items-center justify-center text-gray-300 bg-gray-100 absolute inset-0">
-                                    <ChefHat className="h-12 w-12 opacity-20" />
-                                </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                <div className="absolute bottom-4 left-4 text-white">
-                                    <h2 className="text-xl font-black shadow-black drop-shadow-md">{recipe.name}</h2>
-                                    <p className="text-xs font-medium opacity-90">{recipe.description || "설명 없음"}</p>
-                                </div>
-                            </div>
+                {recipes.map((recipe: any) => {
+                    const isDoenjang = recipe.name.includes("된장찌개");
+                    const aiPrompt = isDoenjang
+                        ? `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`
+                        : `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
 
-                            {/* Content Area */}
-                            <div className="p-4">
-                                <div className="flex justify-between items-end mb-3">
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pricing Summary</p>
-                                        <p className="text-lg font-black text-gray-900">{recipe.sellingPrice?.toLocaleString() ?? 0}원</p>
+                    return (
+                        <div key={recipe.id} className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 transition-all hover:shadow-md active:scale-98 group">
+                            <Link href={`/recipes/${recipe.id}`} className="block">
+                                {/* Image Area */}
+                                <div className="aspect-[2/1] w-full bg-gray-100 relative overflow-hidden">
+                                    <img
+                                        src={isDoenjang ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}` : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`)}
+                                        alt={recipe.name}
+                                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                        onError={(e) => {
+                                            // Fallback if AI image fails
+                                            e.currentTarget.style.display = 'none';
+                                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                        }}
+                                    />
+                                    {/* CheckHat Fallback (Hidden by default, shown on error) */}
+                                    <div className="hidden h-full w-full flex items-center justify-center text-gray-300 bg-gray-100 absolute inset-0">
+                                        <ChefHat className="h-12 w-12 opacity-20" />
                                     </div>
-                                    <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-full">
-                                        DETAIL <ArrowRight className="h-3 w-3" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                    <div className="absolute bottom-4 left-4 text-white">
+                                        <h2 className="text-xl font-black shadow-black drop-shadow-md">{recipe.name}</h2>
+                                        <p className="text-xs font-medium opacity-90">{recipe.description || "설명 없음"}</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-4 text-xs font-bold text-gray-500 border-t border-gray-100 pt-3">
-                                    <span className="flex items-center gap-1">
-                                        <Plus className="h-3 w-3" /> {recipe.ingredients.length} Ingredients
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        {recipe.servings} Servings
-                                    </span>
-                                </div>
-                            </div>
-                        </Link>
+                                {/* Content Area */}
+                                <div className="p-4">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pricing Summary</p>
+                                            <p className="text-lg font-black text-gray-900">{recipe.sellingPrice?.toLocaleString() ?? 0}원</p>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-full">
+                                            DETAIL <ArrowRight className="h-3 w-3" />
+                                        </div>
+                                    </div>
 
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
-                            {/* Passing onSuccess to trigger refresh */}
-                            <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={fetchRecipes} />
+                                    <div className="flex items-center gap-4 text-xs font-bold text-gray-500 border-t border-gray-100 pt-3">
+                                        <span className="flex items-center gap-1">
+                                            <Plus className="h-3 w-3" /> {recipe.ingredients.length} Ingredients
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            {recipe.servings} Servings
+                                        </span>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+                                {/* Passing onSuccess to trigger refresh */}
+                                <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={fetchRecipes} />
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
                 {/* Add New Button Card */}
                 {/* Pass onSuccess to fetchRecipes */}

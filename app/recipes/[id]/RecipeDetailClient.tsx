@@ -384,21 +384,29 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                             <div className="flex items-center gap-1">
                                                 <input
                                                     autoFocus
-                                                    type="number"
+                                                    type="text"
+                                                    inputMode="numeric"
                                                     value={editAmount}
                                                     onFocus={(e) => e.currentTarget.select()}
                                                     onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        // Remove leading zeros resulting in "01", "05", etc. but keep "0", "0.", "0.5"
-                                                        const cleanVal = val.replace(/^0+(?=\d)/, '');
-                                                        setEditAmount(cleanVal);
+                                                        let val = e.target.value;
+                                                        // Remove non-numeric chars except dot
+                                                        val = val.replace(/[^0-9.]/g, '');
+                                                        // Prevent multiple dots
+                                                        if ((val.match(/\./g) || []).length > 1) return;
+
+                                                        // Remove leading zeros if not decimal (e.g. 05 -> 5)
+                                                        if (val.length > 1 && val.startsWith('0') && val[1] !== '.') {
+                                                            val = val.replace(/^0+/, '');
+                                                        }
+                                                        setEditAmount(val);
                                                     }}
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') handleUpdateAmount(item.id);
                                                         if (e.key === 'Escape') setEditingId(null);
                                                     }}
                                                     placeholder="0"
-                                                    className="w-20 rounded-lg border-2 border-blue-200 px-2 py-1 text-sm font-bold text-blue-600 focus:outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-gray-300"
+                                                    className="w-20 rounded-lg border-2 border-blue-200 px-2 py-1 text-sm font-bold text-blue-600 focus:outline-none text-right placeholder:text-gray-300"
                                                 />
                                                 <button onClick={() => handleUpdateAmount(item.id)} className="rounded-lg bg-blue-600 p-1.5 text-white shadow-sm">
                                                     <Check className="h-3 w-3" />
