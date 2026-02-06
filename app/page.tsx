@@ -46,9 +46,12 @@ export default async function Home() {
   return (
     <div className="space-y-8 pb-24">
       <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">식자재 목록</h1>
-          <p className="text-gray-500">관리 중인 식자재를 추가하고 확인하세요.</p>
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+            식자재 목록
+            <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full border border-orange-200">v0.1.6</span>
+          </h1>
+          <p className="mt-1 text-gray-500">관리 중인 식자재를 추가하고 확인하세요.</p>
         </div>
         <Link
           href="/recipes"
