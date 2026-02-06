@@ -7,6 +7,8 @@ import { prisma } from "./lib/prisma";
 import Link from "next/link";
 import { Bell, LayoutDashboard, List, ShieldCheck } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -46,7 +48,7 @@ export default async function RootLayout({
             <div className="flex items-center gap-8">
               <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-blue-600 hover:opacity-80">
                 🥗 성공식당
-                <span className="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-200 align-top">v0.1.11</span>
+                <span className="ml-1 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-200 align-top">v0.1.12</span>
               </Link>
               <div className="hidden md:flex items-center gap-6">
                 <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-all hover:scale-105 active:scale-95">
