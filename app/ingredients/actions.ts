@@ -140,6 +140,30 @@ export async function deleteIngredient(id: number) {
         },
     });
 
+    revalidatePath("/");
+}
+
+export async function bulkDeleteIngredients(ids: number[]) {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
+    const userId = (session.user as any).id;
+
+    // Verify ownership and delete in transaction or batch
+    // We can just use deleteMany with userId check for safety
+    await prisma.ingredientPrice.deleteMany({
+        where: {
+            ingredientId: { in: ids },
+            ingredient: { userId: userId } // Ensure we only delete prices for user's ingredients
+        }
+    });
+
+    await prisma.ingredient.deleteMany({
+        where: {
+            id: { in: ids },
+            userId: userId
+        }
+    });
+
     revalidatePath("/ingredients");
     revalidatePath("/");
 }

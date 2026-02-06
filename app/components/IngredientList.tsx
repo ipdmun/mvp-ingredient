@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2 } from "lucide-react";
+import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X } from "lucide-react";
 import { getIngredientIcon } from "@/app/lib/utils";
-import { deleteIngredient, refreshIngredientPrice } from "@/app/ingredients/actions";
+import { deleteIngredient, refreshIngredientPrice, bulkDeleteIngredients } from "@/app/ingredients/actions";
 
 type Price = {
     price: number;
@@ -34,6 +34,10 @@ export default function IngredientList({ initialIngredients }: Props) {
     const [searchTerm, setSearchTerm] = useState("");
     const [sortType, setSortType] = useState<SortType>("createdAt");
     const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+    // Selection State
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const getPriceAnalysis = (name: string, prices: Price[]) => {
         const latestPriceObj = prices[0];
@@ -70,22 +74,24 @@ export default function IngredientList({ initialIngredients }: Props) {
         };
     };
 
-    const filteredAndSortedIngredients = initialIngredients
-        .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        .sort((a, b) => {
-            let comparison = 0;
-            if (sortType === "name") {
-                comparison = a.name.localeCompare(b.name);
-            } else if (sortType === "unit") {
-                comparison = a.unit.localeCompare(b.unit);
-            } else if (sortType === "createdAt") {
-                comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            } else if (sortType === "price") {
-                comparison = (a.prices?.[0]?.price || 0) - (b.prices?.[0]?.price || 0);
-            }
+    const filteredAndSortedIngredients = useMemo(() => {
+        return initialIngredients
+            .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            .sort((a, b) => {
+                let comparison = 0;
+                if (sortType === "name") {
+                    comparison = a.name.localeCompare(b.name);
+                } else if (sortType === "unit") {
+                    comparison = a.unit.localeCompare(b.unit);
+                } else if (sortType === "createdAt") {
+                    comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                } else if (sortType === "price") {
+                    comparison = (a.prices?.[0]?.price || 0) - (b.prices?.[0]?.price || 0);
+                }
 
-            return sortOrder === "asc" ? comparison : -comparison;
-        });
+                return sortOrder === "asc" ? comparison : -comparison;
+            });
+    }, [initialIngredients, searchTerm, sortType, sortOrder]);
 
     const toggleSort = (type: SortType) => {
         if (sortType === type) {
@@ -112,43 +118,109 @@ export default function IngredientList({ initialIngredients }: Props) {
         }
     };
 
+    // Selection Handlers
+    const toggleSelection = (id: number) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedIds.length === filteredAndSortedIngredients.length && filteredAndSortedIngredients.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredAndSortedIngredients.map(item => item.id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (!confirm(`선택한 ${selectedIds.length}개의 재료를 정말 삭제하시겠습니까?`)) return;
+
+        setIsDeleting(true);
+        try {
+            await bulkDeleteIngredients(selectedIds);
+            setSelectedIds([]);
+        } catch (error) {
+            alert("삭제 중 오류가 발생했습니다.");
+            console.error(error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Search and Sort Toolbar */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative flex-1 max-w-sm">
-                    <input
-                        type="text"
-                        placeholder="재료 검색..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
-                    />
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sticky top-0 z-20 bg-white/80 backdrop-blur-md py-4 -my-4 px-1">
+                <div className="flex items-center gap-2 flex-1">
+                    {/* Select All Checkbox */}
+                    <button
+                        onClick={handleSelectAll}
+                        className={`group flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${selectedIds.length > 0 && selectedIds.length === filteredAndSortedIngredients.length
+                                ? "bg-blue-600 border-blue-600 text-white"
+                                : "bg-white border-gray-200 text-gray-500 hover:border-blue-400"
+                            }`}
+                    >
+                        {selectedIds.length > 0 && selectedIds.length === filteredAndSortedIngredients.length ? (
+                            <CheckSquare className="h-5 w-5" />
+                        ) : (
+                            <Square className="h-5 w-5" />
+                        )}
+                        <span className="text-sm font-bold whitespace-nowrap">
+                            {selectedIds.length > 0 ? "전체 해제" : "전체 선택"}
+                        </span>
+                    </button>
+
+                    {/* Bulk Delete Button */}
+                    {selectedIds.length > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            disabled={isDeleting}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors animate-in fade-in slide-in-from-left-2"
+                        >
+                            {isDeleting ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                <Trash2 className="h-5 w-5" />
+                            )}
+                            <span className="text-sm hidden sm:inline">
+                                {selectedIds.length}개 삭제
+                            </span>
+                        </button>
+                    )}
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-                    <button
-                        onClick={() => toggleSort("createdAt")}
-                        className={`flex whitespace-nowrap items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${sortType === "createdAt" ? "border-blue-500 bg-blue-50 text-blue-600 shadow-sm" : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
-                            }`}
-                    >
-                        <Clock className="h-3.5 w-3.5" />
-                        등록순 {sortType === "createdAt" && (sortOrder === "asc" ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
-                    </button>
-                    <button
-                        onClick={() => toggleSort("price")}
-                        className={`flex whitespace-nowrap items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${sortType === "price" ? "border-blue-500 bg-blue-50 text-blue-600 shadow-sm" : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
-                            }`}
-                    >
-                        가격순 {sortType === "price" && (sortOrder === "asc" ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
-                    </button>
-                    <button
-                        onClick={() => toggleSort("name")}
-                        className={`flex whitespace-nowrap items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${sortType === "name" ? "border-blue-500 bg-blue-50 text-blue-600 shadow-sm" : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
-                            }`}
-                    >
-                        가나다순 {sortType === "name" && (sortOrder === "asc" ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
-                    </button>
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
+                    <div className="relative w-full sm:w-auto max-w-xs">
+                        <input
+                            type="text"
+                            placeholder="재료 검색..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm pl-9"
+                        />
+                        <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                        <button
+                            onClick={() => toggleSort("createdAt")}
+                            className={`flex whitespace-nowrap items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${sortType === "createdAt" ? "border-blue-500 bg-blue-50 text-blue-600 shadow-sm" : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
+                                }`}
+                        >
+                            <Clock className="h-3.5 w-3.5" />
+                            등록순 {sortType === "createdAt" && (sortOrder === "asc" ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
+                        </button>
+                        <button
+                            onClick={() => toggleSort("price")}
+                            className={`flex whitespace-nowrap items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${sortType === "price" ? "border-blue-500 bg-blue-50 text-blue-600 shadow-sm" : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
+                                }`}
+                        >
+                            가격순 {sortType === "price" && (sortOrder === "asc" ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -156,25 +228,51 @@ export default function IngredientList({ initialIngredients }: Props) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredAndSortedIngredients.map((item) => {
                     const { latest, previous, weekAvg, monthAvg, marketData } = getPriceAnalysis(item.name, item.prices);
+                    const isSelected = selectedIds.includes(item.id);
 
                     return (
                         <div
                             key={item.id}
-                            onClick={() => router.push(`/ingredients/${item.id}`)}
-                            className="group relative flex flex-col justify-between rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                            onClick={() => {
+                                // If in selection mode (at least one selected), clicking card toggles selection
+                                // Otherwise navigates
+                                if (selectedIds.length > 0) {
+                                    toggleSelection(item.id);
+                                } else {
+                                    router.push(`/ingredients/${item.id}`);
+                                }
+                            }}
+                            className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-5 shadow-sm transition-all hover:shadow-xl cursor-pointer
+                                ${isSelected
+                                    ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50/10"
+                                    : "border-gray-100 hover:border-blue-200 hover:-translate-y-1"
+                                }`}
                         >
-                            <div className="space-y-4">
+                            {/* Card Checkbox Overlay (Always visible on hover or if selected) */}
+                            <div className="absolute top-4 left-4 z-10" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    onClick={() => toggleSelection(item.id)}
+                                    className={`p-1 rounded-md transition-all ${isSelected
+                                            ? "text-blue-600 bg-white shadow-sm ring-1 ring-blue-100"
+                                            : "text-gray-300 hover:text-blue-400 bg-white/0 hover:bg-white"
+                                        }`}
+                                >
+                                    {isSelected ? <CheckSquare className="h-6 w-6" /> : <Square className="h-6 w-6" />}
+                                </button>
+                            </div>
+
+                            <div className="space-y-4 pl-8"> {/* Add padding left for checkbox space */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-inner border border-blue-100/50 overflow-hidden">
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-inner border border-blue-100/50 overflow-hidden shrink-0">
                                             {getIngredientIcon(item.name).startsWith("/") ? (
                                                 <img src={getIngredientIcon(item.name)} alt={item.name} className="h-full w-full object-contain p-1 mix-blend-multiply" />
                                             ) : (
                                                 getIngredientIcon(item.name)
                                             )}
                                         </div>
-                                        <div>
-                                            <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg">
+                                        <div className="min-w-0">
+                                            <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate">
                                                 {item.name}
                                             </div>
                                             <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded uppercase">
@@ -182,7 +280,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right shrink-0">
                                         <div className="flex flex-col items-end">
                                             <p className="text-xl font-black text-gray-900">
                                                 {latest > 0 ? `${latest.toLocaleString()}원` : "기록 없음"}
