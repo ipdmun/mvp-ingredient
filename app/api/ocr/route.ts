@@ -97,9 +97,8 @@ export async function POST(request: Request) {
         for (const modelName of modelsToTry) {
             try {
                 console.log(`📡 Trying Model: ${modelName}...`);
-                // Force v1 API for stable models, v1beta for others if needed. 
-                // Mostly v1 is safer for 1.5 Flash/Pro now.
-                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
+                // Use v1beta for widest model support (especially 1.5 series)
+                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
 
                 const result = await model.generateContent([
                     systemPrompt,
