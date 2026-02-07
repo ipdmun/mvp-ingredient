@@ -12,6 +12,7 @@ type Price = {
     recordedAt: Date;
     source: string;
     marketData?: any; // JSON
+    unit: string;
 };
 
 type Ingredient = {
@@ -275,7 +276,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate">
                                                 {item.name}
                                             </div>
-                                            <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded uppercase">
+                                            <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded">
                                                 {item.unit.toLowerCase()}
                                             </span>
                                         </div>

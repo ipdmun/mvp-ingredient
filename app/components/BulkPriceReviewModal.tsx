@@ -41,7 +41,14 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
 
     useEffect(() => {
         if (isOpen) {
-            setProcessedItems(items);
+            // OCR returns 'price' as Total Price. We must map it to originalPrice 
+            // and calculate unit price for the UI/Data.
+            const mappedItems = items.map(item => ({
+                ...item,
+                originalPrice: item.price, // OCR 'price' is Total
+                price: item.amount && item.amount > 0 ? Math.round(item.price / item.amount) : item.price
+            }));
+            setProcessedItems(mappedItems);
             setEditingIndex(null);
         }
     }, [isOpen, items]);
