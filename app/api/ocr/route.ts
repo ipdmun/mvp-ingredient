@@ -82,14 +82,14 @@ export async function POST(request: Request) {
 
         const genAI = new GoogleGenerativeAI(cleanedApiKey);
 
-        // Priority List of Models to Try
+        // Priority List of Models to Try (Updated based on Key Permissions)
         const modelsToTry = [
-            "gemini-1.5-flash",     // Alias (Latest Stable)
-            "gemini-1.5-pro",       // Alias (Latest Stable)
-            "gemini-1.5-flash-001",
-            "gemini-1.5-pro-001",
-            "gemini-pro-vision",    // Legacy
-            "gemini-pro"            // Legacy Text-only (Last resort, might fail on image)
+            "gemini-2.0-flash",     // Confirmed Available
+            "gemini-2.0-flash-lite", // Confirmed Available
+            "gemini-flash-latest",   // General Alias
+            "gemini-1.5-flash",      // Standard
+            "gemini-1.5-pro",
+            "gemini-pro"
         ];
 
         let text = null;
