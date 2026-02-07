@@ -1,6 +1,21 @@
+"use client";
+
+import { useState } from "react";
+import { updateIngredientPrice, deleteIngredientPrice } from "../actions";
+import { Edit2, Trash2, Check, X } from "lucide-react";
 import { convertPriceForDisplay } from "@/app/lib/utils";
 
 // ... existing imports
+
+type PriceRecord = {
+    id: number;
+    price: number;
+    unit: string;
+    recordedAt: string; // Serialized date
+    source: string;
+    totalPrice?: number | null;
+    amount?: number | null;
+};
 
 type Props = {
     prices: PriceRecord[];
@@ -9,7 +24,15 @@ type Props = {
 };
 
 export default function PriceHistoryTableV2({ prices, lowestPriceId, ingredientUnit }: Props) {
-    // ... existing state and handlers
+    const [editingId, setEditingId] = useState<number | null>(null);
+
+    const handleEdit = (id: number) => {
+        setEditingId(id);
+    };
+
+    const handleCancel = () => {
+        setEditingId(null);
+    };
 
     return (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -61,7 +84,36 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess,
     onSaveSuccess: () => void;
     ingredientUnit: string;
 }) {
-    // ... existing state and logic
+    const [isSaving, setIsSaving] = useState(false);
+
+    const defaultSource = price.source || "";
+    const defaultTotal = price.totalPrice || price.price * (price.amount || 1);
+    const defaultAmount = price.amount || 1;
+    const defaultUnit = price.unit || ingredientUnit;
+    const defaultDate = new Date(price.recordedAt).toISOString().split('T')[0];
+
+    const handleSave = async (formData: FormData) => {
+        setIsSaving(true);
+        try {
+            await updateIngredientPrice(price.id, formData);
+            onSaveSuccess();
+        } catch (error) {
+            console.error("Failed to update price", error);
+            alert("가격 수정 중 오류가 발생했습니다.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("정말 이 가격 기록을 삭제하시겠습니까?")) return;
+        try {
+            await deleteIngredientPrice(price.id);
+        } catch (error) {
+            console.error("Failed to delete price", error);
+            alert("가격 삭제 중 오류가 발생했습니다.");
+        }
+    };
 
     // Calculate display price in the Ingredient's Preferred Unit
     // price.price is usually per 'g' or 'ml' (normalized)
