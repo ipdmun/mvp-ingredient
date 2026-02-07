@@ -307,40 +307,38 @@ export async function createBulkIngredientPrices(items: {
                 ingredientId = newIngredient.id;
             }
 
-            // Ensure numbers are valid
-            const safePrice = isNaN(item.price) ? 0 : item.price;
-            const safeTotalPrice = item.originalPrice && !isNaN(item.originalPrice) ? item.originalPrice : null;
-            const safeAmount = item.amount && !isNaN(item.amount) ? item.amount : 1;
+            // Normalize Data
+            // We trust 'price' (Unit Price) from the client as the base truth if 'originalPrice' (Total) is missing.
+            // If 'originalPrice' exists, we use it to calculate precision.
 
-            // [Fix] Normalize Logic for Bulk
-            // item.price is ALREADY unit price calculated by OCR. 
-            // We need to re-verify or just trust OCR? 
-            // Better to re-calculate from Total/Amount if available to ensure normalization.
-            let finalUnitPrice = safePrice;
-            let finalUnit = item.unit;
-
-            if (safeTotalPrice && safeAmount) {
-                const normalized = calculateNormalizedPrice(safeTotalPrice, safeAmount, item.unit);
-                finalUnitPrice = normalized.unitPrice;
-                finalUnit = normalized.unit;
+            let normalized;
+            if (item.originalPrice && item.originalPrice > 0) {
+                // Case A: accurate Total Price exists
+                normalized = calculateNormalizedPrice(item.originalPrice, item.amount || 1, item.unit);
             } else {
-                // If we only have unit price (e.g. 1000/kg), normalize it
-                const normalized = calculateNormalizedPrice(safePrice, 1, item.unit);
-                finalUnitPrice = normalized.unitPrice;
-                finalUnit = normalized.unit;
+                // Case B: Only Unit Price exists (or Total is 0/missing)
+                // We treat item.price as the Unit Price for the given item.unit
+                // To use calculateNormalizedPrice correctly:
+                // "Total Price" = item.price * (item.amount || 1)
+                const estimatedTotal = item.price * (item.amount || 1);
+                normalized = calculateNormalizedPrice(estimatedTotal, item.amount || 1, item.unit);
             }
 
+            // Sanitize Market Data
+            const safeMarketData = item.marketData ? JSON.parse(JSON.stringify(item.marketData)) : undefined;
+
             await savePriceLogic(userId, ingredientId, {
-                price: finalUnitPrice,
-                totalPrice: safeTotalPrice,
-                amount: safeTotalPrice && safeAmount ? calculateNormalizedPrice(safeTotalPrice, safeAmount, item.unit).amount : safeAmount, // Recalculate if possible to get normalized Amount
-                unit: finalUnit, // normalized unit
+                price: normalized.unitPrice,
+                totalPrice: item.originalPrice || (normalized.unitPrice * normalized.amount), // Fallback to calculated total
+                amount: normalized.amount,
+                unit: normalized.unit,
                 source: item.source || "Unknown",
-                marketData: item.marketData || null
+                marketData: safeMarketData
             });
             successCount++;
         } catch (error) {
             console.error(`Failed to save price for ${item.name}`, error);
+            // Don't throw, allow other items to proceed
         }
     }
 
