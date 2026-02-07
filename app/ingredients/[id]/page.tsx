@@ -46,7 +46,6 @@ export default async function IngredientDetailPage(props: Props) {
 
     const { getIngredientIcon } = await import("@/app/lib/utils");
 
-    // @ts-ignore
     const monthlyUsage = ingredient.monthlyUsage ?? 10;
 
     return (
