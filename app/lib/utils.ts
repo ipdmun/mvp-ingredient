@@ -52,3 +52,28 @@ export function convertPriceForDisplay(price: number, fromUnit: string, toUnit: 
 
     return price;
 }
+
+/**
+ * Converts an amount from one unit to another for display.
+ * @param amount Raw amount value
+ * @param fromUnit Unit of the raw amount (e.g. 'g')
+ * @param toUnit Target display unit (e.g. 'kg')
+ */
+export function convertAmountForDisplay(amount: number, fromUnit: string, toUnit: string): number {
+    const from = fromUnit.toLowerCase();
+    const to = toUnit.toLowerCase();
+
+    if (from === to) return amount;
+
+    // g -> kg
+    if (from === 'g' && to === 'kg') return amount / 1000;
+    // ml -> l
+    if (from === 'ml' && to === 'l') return amount / 1000;
+
+    // kg -> g
+    if (from === 'kg' && to === 'g') return amount * 1000;
+    // l -> ml
+    if (from === 'l' && to === 'ml') return amount * 1000;
+
+    return amount;
+}

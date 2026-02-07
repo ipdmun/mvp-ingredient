@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { updateIngredientPrice, deleteIngredientPrice } from "../actions";
 import { Edit2, Trash2, Check, X } from "lucide-react";
-import { convertPriceForDisplay } from "@/app/lib/utils";
+import { convertPriceForDisplay, convertAmountForDisplay } from "@/app/lib/utils";
 
 // ... existing imports
 
@@ -120,6 +120,7 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess,
     // ingredientUnit might be 'kg', 'l', etc.
     // convertPriceForDisplay(price, fromUnit, toUnit)
     const displayUnitPrice = convertPriceForDisplay(price.price, price.unit, ingredientUnit);
+    const displayAmount = convertAmountForDisplay(price.amount || 1, price.unit, ingredientUnit);
 
     if (isEditing) {
         // ... existing edit form (return logic)
@@ -221,7 +222,7 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess,
                 {price.totalPrice ? (
                     <div className="flex flex-col">
                         <span className="font-bold">{price.totalPrice.toLocaleString()}원</span>
-                        <span className="text-xs text-gray-500">({price.amount}{price.unit.toLowerCase()})</span>
+                        <span className="text-xs text-gray-500">({displayAmount.toLocaleString()}{ingredientUnit.toLowerCase()})</span>
                     </div>
                 ) : (
                     <span className="text-gray-400">-</span>

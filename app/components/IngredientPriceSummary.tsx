@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { TrendingDown, TrendingUp, Calendar, Info } from "lucide-react";
+import { convertPriceForDisplay } from "@/app/lib/utils";
 
 type PriceRecord = {
     id: number;
@@ -55,8 +56,18 @@ export default function IngredientPriceSummary({ prices, unit, lowestPrice }: Pr
 
         if (totalAmount === 0) return 0;
 
-        return Math.round(totalSpend / totalAmount);
-    }, [filteredPrices]);
+        // RAW average (e.g. per g)
+        const rawAverage = Math.round(totalSpend / totalAmount);
+
+        // Convert to Display Unit (e.g. per kg)
+        const sourceUnit = filteredPrices[0]?.unit || 'g';
+        return convertPriceForDisplay(rawAverage, sourceUnit, unit);
+    }, [filteredPrices, unit]);
+
+    // Convert Lowest Price for Comparison
+    const displayLowestPrice = lowestPrice
+        ? convertPriceForDisplay(lowestPrice.price, 'g', unit) // Assuming lowestPrice comes from DB normalized (g)
+        : 0;
 
     return (
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -106,20 +117,20 @@ export default function IngredientPriceSummary({ prices, unit, lowestPrice }: Pr
                     {lowestPrice && (
                         <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
                             <div className="flex items-start gap-3">
-                                <div className={`p-2 rounded-full ${lowestPrice.price < averagePrice ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                    {lowestPrice.price < averagePrice ? <TrendingDown className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />}
+                                <div className={`p-2 rounded-full ${displayLowestPrice < averagePrice ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                    {displayLowestPrice < averagePrice ? <TrendingDown className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />}
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold text-gray-900">
-                                        현재 최저가: {lowestPrice.price.toLocaleString()}원
+                                        현재 최저가: {displayLowestPrice.toLocaleString()}원
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">
                                         출처: {lowestPrice.source}
                                     </p>
-                                    <p className={`text-xs font-bold mt-2 ${lowestPrice.price < averagePrice ? 'text-red-500' : 'text-green-600'}`}>
-                                        {lowestPrice.price < averagePrice
-                                            ? `평균보다 ${Math.abs(averagePrice - lowestPrice.price).toLocaleString()}원 더 저렴해요!`
-                                            : `평균보다 ${Math.abs(lowestPrice.price - averagePrice).toLocaleString()}원 비싸요.`}
+                                    <p className={`text-xs font-bold mt-2 ${displayLowestPrice < averagePrice ? 'text-red-500' : 'text-green-600'}`}>
+                                        {displayLowestPrice < averagePrice
+                                            ? `평균보다 ${Math.abs(averagePrice - displayLowestPrice).toLocaleString()}원 더 저렴해요!`
+                                            : `평균보다 ${Math.abs(displayLowestPrice - averagePrice).toLocaleString()}원 비싸요.`}
                                     </p>
                                 </div>
                             </div>
