@@ -13,6 +13,7 @@ type Props = {
 export default function GlobalCameraFab({ ingredients }: Props) {
     const [isThinking, setIsThinking] = useState(false);
     const [ocrItems, setOcrItems] = useState<any[]>([]);
+    const [analystReport, setAnalystReport] = useState<any[]>([]); // New state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -50,6 +51,7 @@ export default function GlobalCameraFab({ ingredients }: Props) {
 
             const data = await res.json();
             setOcrItems(data.items);
+            setAnalystReport(data.analystReport || []); // Capture report
             setIsModalOpen(true);
         } catch (error) {
             console.error(error);
@@ -125,6 +127,7 @@ export default function GlobalCameraFab({ ingredients }: Props) {
                 onClose={() => setIsModalOpen(false)}
                 items={ocrItems}
                 ingredients={ingredients}
+                analystReport={analystReport}
             />
         </>
     );

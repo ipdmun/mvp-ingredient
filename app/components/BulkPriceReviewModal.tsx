@@ -20,6 +20,8 @@ type OCRItem = {
     amount?: number; // Total weight/count
     originalPrice?: number; // Total price written
     marketAnalysis: MarketAnalysis;
+    status?: string | null;  // New field
+    relatedRecipes?: any[];  // New field
 };
 
 type Props = {
@@ -27,13 +29,15 @@ type Props = {
     onClose: () => void;
     items: OCRItem[];
     ingredients: { id: number; name: string }[];
+    analystReport?: any[]; // New prop
 };
 
-export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredients }: Props) {
+export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredients, analystReport }: Props) {
     const [processedItems, setProcessedItems] = useState<OCRItem[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editForm, setEditForm] = useState<Partial<OCRItem>>({});
+    const [showReport, setShowReport] = useState(true);
 
     useEffect(() => {
         if (isOpen) {
@@ -42,7 +46,11 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         }
     }, [isOpen, items]);
 
+    // ... (keep existing functions: handleDelete, startEdit, cancelEdit, saveEdit, handleAddItem, handleSave) ...
+
     if (!isOpen) return null;
+
+    // Helper to render existing contents (I will just replace the render part mostly)
 
     const handleDelete = (index: number) => {
         if (confirm("이 항목을 삭제하시겠습니까?")) {
@@ -154,7 +162,6 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
 
             // Hard Refresh to ensure data is visible
             window.location.reload();
-            // router.refresh(); // Temporarily using reload to be 100% sure for the user
         } catch (error) {
             console.error(error);
             alert("저장 중 오류가 발생했습니다.");
@@ -169,7 +176,10 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-100 p-6 bg-white shrink-0">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">📸 인식 결과 확인</h2>
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            📸 식자재 분석 결과
+                            {analystReport && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">AUTO ANALYST</span>}
+                        </h2>
                         <p className="text-xs text-gray-500 mt-1">{processedItems.length}개의 품목이 인식되었습니다.</p>
                     </div>
                     <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100 transition-colors">
@@ -179,6 +189,27 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
 
                 {/* Body (Scrollable) */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/30">
+
+                    {/* Analyst Report Section */}
+                    {analystReport && analystReport.length > 0 && showReport && (
+                        <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
+                            <h4 className="text-sm font-black text-purple-900 mb-2 flex items-center gap-2">
+                                🤖 AI 분석 리포트
+                                <button onClick={() => setShowReport(false)} className="text-xs text-purple-400 underline font-normal ml-auto">숨기기</button>
+                            </h4>
+                            <div className="space-y-1">
+                                {analystReport.map((rep, idx) => (
+                                    <div key={idx} className="flex text-xs items-center gap-2 border-b border-purple-100/50 last:border-0 pb-1 last:pb-0">
+                                        <span className="font-bold text-gray-700 min-w-[60px]">{rep.품목}</span>
+                                        <span className="text-gray-500">{rep.수량}</span>
+                                        <span className="text-gray-500 ml-auto">{rep.단가}</span>
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${rep.상태 === '정상' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{rep.상태}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {processedItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                             <Trash2 className="h-12 w-12 mb-2 opacity-20" />
@@ -189,8 +220,12 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                             <div key={idx} className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm group hover:border-blue-200 transition-all">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                     <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 shrink-0 rounded-2xl bg-blue-50 flex items-center justify-center font-bold text-2xl shadow-inner border border-blue-100">
-                                            {getIngredientIcon(item.name)}
+                                        <div className="h-12 w-12 shrink-0 rounded-2xl bg-blue-50 flex items-center justify-center font-bold text-2xl shadow-inner border border-blue-100 overflow-hidden">
+                                            {getIngredientIcon(item.name).startsWith("/") ? (
+                                                <img src={getIngredientIcon(item.name)} alt={item.name} className="h-full w-full object-contain p-1 mix-blend-multiply" />
+                                            ) : (
+                                                getIngredientIcon(item.name)
+                                            )}
                                         </div>
                                         <div>
                                             <div className="flex items-baseline gap-2">
@@ -198,8 +233,14 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                                 {item.amount && (
                                                     <span className="text-sm text-gray-500 font-normal">({item.amount}{item.unit})</span>
                                                 )}
+                                                {/* Recipe Badge */}
+                                                {item.relatedRecipes && item.relatedRecipes.length > 0 && (
+                                                    <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-1 text-[10px] font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20">
+                                                        👨‍🍳 레시피 연동
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="mt-0.5">
+                                            <div className="mt-0.5 relative">
                                                 {item.originalPrice ? (
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs text-gray-400">총 {item.originalPrice.toLocaleString()}원</span>
@@ -208,6 +249,13 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                                     </div>
                                                 ) : (
                                                     <p className="text-sm text-gray-900 font-bold">{item.price.toLocaleString()}원 / {item.unit}</p>
+                                                )}
+
+                                                {/* Warning Status */}
+                                                {(item.status && item.status !== '정상') && (
+                                                    <span className="absolute -top-6 left-0 text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 animate-pulse">
+                                                        ⚠️ {item.status}
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>

@@ -104,6 +104,7 @@ model Recipe {
   name         String
   description  String?
   imageUrl     String?            // 레시피 이미지
+  illustrationPrompt String?      // 일러스트 생성 프롬프트
   servings     Int                @default(1) // 기준 인분 수
   sellingPrice Int?               // 판매 가격
   ingredients  RecipeIngredient[] 

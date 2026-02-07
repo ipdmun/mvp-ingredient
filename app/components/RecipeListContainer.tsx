@@ -111,23 +111,21 @@ export default function RecipeListContainer() {
                     const isDoenjang = recipe.name.includes("된장찌개");
                     const isKimchi = recipe.name.includes("김치찌개");
 
-                    // Fallback Images (High quality Unsplash)
-                    let fallbackUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800"; // Default food
-                    if (isDoenjang) fallbackUrl = "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?auto=format&fit=crop&q=80&w=800";
-                    if (isKimchi) fallbackUrl = "https://images.unsplash.com/photo-1617093228322-97cb355a6fa4?auto=format&fit=crop&q=80&w=800";
+                    // Priority: 1. DB-stored Illustration Prompt -> 2. Video/Image URL (Unsplash) -> 3. Fallback Generate
+                    const prompt = recipe.illustrationPrompt;
+                    const imageUrl = recipe.imageUrl;
+                    const fallbackUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800";
 
-                    let aiPrompt = `${recipe.name} illustration food art drawing hand-drawn warm cozy delicious korean food top view minimal`;
-                    if (isDoenjang) {
-                        aiPrompt = "Doenjang Jjigae illustration, warm cozy korean food art, hand drawn style, soybean paste stew with zucchini and tofu, top view, minimal background, high quality";
-                    } else if (isKimchi) {
-                        aiPrompt = "Kimchi Jjigae illustration, warm cozy korean food art, hand drawn style, delicious red stew with tofu and pork, top view, soft lighting, pastel colors, high quality";
+                    let displayUrl = "";
+                    if (prompt) {
+                        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`;
+                    } else if (imageUrl) {
+                        displayUrl = imageUrl;
+                    } else {
+                        // Fallback generic
+                        const genericPrompt = `${recipe.name} delicious korean food illustration art high quality`;
+                        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`;
                     }
-
-                    // Force AI image for known types to avoid DB legacy URL issues
-                    const useAiImage = isDoenjang || isKimchi;
-                    const displayUrl = useAiImage
-                        ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`
-                        : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`);
 
                     return (
                         <div key={recipe.id} className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 transition-all hover:shadow-md active:scale-98 group">

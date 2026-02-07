@@ -7,6 +7,43 @@ import { authOptions } from "@/app/lib/auth";
 
 // --- Internal Logic (No session checks, no revalidatePath) ---
 
+// Helper to normalize price to base unit (g, ml, 개)
+function calculateNormalizedPrice(price: number, amount: number, unit: string) {
+    // 1. Basic Unit Price (Total Price / Amount)
+    let unitPrice = amount > 0 ? price / amount : price;
+    let normalizedUnit = unit;
+
+    // 2. Normalize Unit (kg -> g, l -> ml)
+    const lowerUnit = unit.toLowerCase().trim();
+
+    if (lowerUnit === 'kg') {
+        unitPrice = unitPrice / 1000; // Price per kg -> Price per g
+        normalizedUnit = 'g';
+    } else if (lowerUnit === 'l' || lowerUnit === 'liter') {
+        unitPrice = unitPrice / 1000; // Price per L -> Price per ml
+        normalizedUnit = 'ml';
+    } else if (lowerUnit === '돈') {
+        unitPrice = unitPrice / 3.75; // Price per don -> Price per g (approx)
+        normalizedUnit = 'g';
+    } else if (lowerUnit === '근') {
+        unitPrice = unitPrice / 600; // Meat usually 600g
+        normalizedUnit = 'g';
+    } else if (lowerUnit === '모') {
+        // Tofu average ~350g (updated per user request).
+        // If amount is 1, it means 1 block = 350g.
+        // Price per 'block' needed to convert to Price per 'g'.
+        // Unit Price (per block) / 350 = Price per g
+        unitPrice = unitPrice / 350;
+        normalizedUnit = 'g';
+    }
+
+    return {
+        unitPrice: Math.round(unitPrice * 100) / 100, // Keep 2 decimal places for precision
+        unit: normalizedUnit
+    };
+}
+
+
 export async function savePriceLogic(userId: string, ingredientId: number, data: {
     price: number;
     totalPrice?: number | null;
@@ -108,16 +145,16 @@ export async function createIngredient(formData: FormData) {
         const analysis = await getMarketAnalysis(name, price, unit, amount);
 
         // Calculate Unit Price for storage/comparison
-        let unitPrice = price;
-        if (amount > 0) {
-            unitPrice = Math.round(price / amount);
-        }
+        // [Fix] Normalize Unit (kg -> g)
+        const normalized = calculateNormalizedPrice(price, amount, unit);
 
         await savePriceLogic((session.user as any).id, ingredientId, {
-            price: unitPrice, // Save Unit Price
+            price: normalized.unitPrice, // Save Normalized Unit Price (e.g. per g)
             totalPrice: price, // Save Total Paid
-            unit,
-            amount,
+            unit: normalized.unit, // Save Normalized Unit (e.g. g)
+            amount: amount, // Keep original amount for record? Or should we store normalized amount? 
+            // Current DB schema is loose, but let's keep original amount for now and user sees 'kg' in source.
+            // BUT `unit` input to savePriceLogic acts as the *Base Unit* for the price.
             source: "직접 입력",
             marketData: analysis
         });
@@ -181,20 +218,17 @@ export async function createIngredientPrice(ingredientId: number, formData: Form
 
     if (!price || !unit || !source) throw new Error("All fields are required");
 
-    // Calculate Unit Price
-    let unitPrice = price;
-    if (amount && amount > 0) {
-        unitPrice = Math.round(price / amount);
-    }
+    // Calculate Unit Price with Normalization
+    const normalized = calculateNormalizedPrice(price, amount || 1, unit);
 
     // Ensure totalPrice is set (it's the input price)
     const finalTotalPrice = totalPrice || price;
 
     await savePriceLogic(userId, ingredientId, {
-        price: unitPrice,
+        price: normalized.unitPrice,
         totalPrice: finalTotalPrice,
         amount: amount || 1,
-        unit,
+        unit: normalized.unit,
         source
     });
 
@@ -274,15 +308,33 @@ export async function createBulkIngredientPrices(items: {
             // Ensure numbers are valid
             const safePrice = isNaN(item.price) ? 0 : item.price;
             const safeTotalPrice = item.originalPrice && !isNaN(item.originalPrice) ? item.originalPrice : null;
-            const safeAmount = item.amount && !isNaN(item.amount) ? item.amount : null;
+            const safeAmount = item.amount && !isNaN(item.amount) ? item.amount : 1;
+
+            // [Fix] Normalize Logic for Bulk
+            // item.price is ALREADY unit price calculated by OCR. 
+            // We need to re-verify or just trust OCR? 
+            // Better to re-calculate from Total/Amount if available to ensure normalization.
+            let finalUnitPrice = safePrice;
+            let finalUnit = item.unit;
+
+            if (safeTotalPrice && safeAmount) {
+                const normalized = calculateNormalizedPrice(safeTotalPrice, safeAmount, item.unit);
+                finalUnitPrice = normalized.unitPrice;
+                finalUnit = normalized.unit;
+            } else {
+                // If we only have unit price (e.g. 1000/kg), normalize it
+                const normalized = calculateNormalizedPrice(safePrice, 1, item.unit);
+                finalUnitPrice = normalized.unitPrice;
+                finalUnit = normalized.unit;
+            }
 
             await savePriceLogic(userId, ingredientId, {
-                price: safePrice,
+                price: finalUnitPrice,
                 totalPrice: safeTotalPrice,
                 amount: safeAmount,
-                unit: item.unit || "개",
+                unit: finalUnit, // normalized unit
                 source: item.source || "Unknown",
-                marketData: item.marketData || null // Pass market data
+                marketData: item.marketData || null
             });
             successCount++;
         } catch (error) {
@@ -349,4 +401,55 @@ export async function refreshIngredientPrice(ingredientId: number) {
     }
 
     return null;
+}
+
+// --- Update & Delete Price Actions ---
+
+export async function updateIngredientPrice(priceId: number, formData: FormData) {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
+
+    const inputTotalPrice = parseInt(formData.get("totalPrice") as string);
+    const inputAmount = parseFloat(formData.get("amount") as string);
+    const inputUnit = formData.get("unit") as string;
+    const source = formData.get("source") as string;
+    const recordedAt = formData.get("recordedAt") as string; // 'YYYY-MM-DD'
+
+    if (!inputTotalPrice || !inputUnit || !source) throw new Error("Fields required");
+
+    // Normalize
+    const normalized = calculateNormalizedPrice(inputTotalPrice, inputAmount || 1, inputUnit);
+
+    const priceRecord = await prisma.ingredientPrice.findUnique({ where: { id: priceId } });
+    if (!priceRecord) throw new Error("Record not found");
+
+    await prisma.ingredientPrice.update({
+        where: { id: priceId },
+        data: {
+            price: normalized.unitPrice,
+            totalPrice: inputTotalPrice,
+            amount: inputAmount || 1,
+            unit: normalized.unit,
+            source,
+            recordedAt: recordedAt ? new Date(recordedAt) : priceRecord.recordedAt
+        }
+    });
+
+    revalidatePath(`/ingredients/${priceRecord.ingredientId}`);
+    revalidatePath("/");
+}
+
+export async function deleteIngredientPrice(priceId: number) {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
+
+    const priceRecord = await prisma.ingredientPrice.findUnique({ where: { id: priceId } });
+    if (!priceRecord) return;
+
+    await prisma.ingredientPrice.delete({
+        where: { id: priceId }
+    });
+
+    revalidatePath(`/ingredients/${priceRecord.ingredientId}`);
+    revalidatePath("/");
 }

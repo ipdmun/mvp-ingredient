@@ -1,19 +1,22 @@
 
 import { prisma } from "@/app/lib/prisma";
 import { notFound } from "next/navigation";
-import { createIngredientPrice, updateIngredientUsage } from "../actions";
+import { updateIngredientUsage } from "../actions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/auth";
 import Link from "next/link";
-import { ArrowLeft, Save, Plus, TrendingDown, Clock, CreditCard } from "lucide-react";
+import { ArrowLeft, Save, Clock } from "lucide-react";
 import AddPriceForm from "../components/AddPriceForm";
 import IngredientPriceSummary from "../../components/IngredientPriceSummary";
+import PriceHistoryTable from "../components/PriceHistoryTableV2";
 
 type Props = {
     params: Promise<{
         id: string;
     }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function IngredientDetailPage(props: Props) {
     const params = await props.params;
@@ -114,52 +117,15 @@ export default async function IngredientDetailPage(props: Props) {
                     </h3>
 
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        {ingredient.prices.length === 0 ? (
-                            <div className="p-8 text-center text-sm text-gray-500">
-                                아직 기록된 가격이 없습니다.
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
-                                        <tr>
-                                            <th className="px-6 py-4">출처</th>
-                                            <th className="px-6 py-4">구매 정보 (총액)</th>
-                                            <th className="px-6 py-4">단가 환산</th>
-                                            <th className="px-6 py-4 text-right">날짜</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {ingredient.prices.map((p) => {
-                                            const isLowest = p.id === lowestPrice?.id;
-                                            return (
-                                                <tr key={p.id} className={`hover:bg-gray-50 ${isLowest ? "bg-green-50/50" : ""}`}>
-                                                    <td className="px-6 py-4 font-medium text-gray-900">
-                                                        {p.source}
-                                                        {isLowest && <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">최저가</span>}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-gray-700">
-                                                        {p.totalPrice ? (
-                                                            <div className="flex flex-col">
-                                                                <span className="font-bold">{p.totalPrice.toLocaleString()}원/{p.amount}{p.unit}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-gray-400">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-blue-600 font-bold">
-                                                        {p.price.toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{p.unit}</span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-gray-400 text-xs">
-                                                        {p.recordedAt.toLocaleDateString()}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                        <PriceHistoryTable
+                            prices={ingredient.prices.map(p => ({
+                                ...p,
+                                recordedAt: p.recordedAt.toISOString(), // Serialize Date to string
+                                totalPrice: p.totalPrice ?? 0,
+                                amount: p.amount ?? 0
+                            }))}
+                            lowestPriceId={lowestPrice?.id}
+                        />
                     </div>
                 </div>
             </div>

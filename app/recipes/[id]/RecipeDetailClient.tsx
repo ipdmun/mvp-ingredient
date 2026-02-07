@@ -191,21 +191,24 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
     };
 
     // [AI Prompt Logic]
-    // [AI Prompt Logic]
-    const isDoenjang = recipe.name.includes("된장찌개");
-    const isKimchi = recipe.name.includes("김치찌개");
+    // Priority: 1. DB-stored Illustration Prompt -> 2. Video/Image URL (Unsplash) -> 3. Fallback Generate
+    const prompt = recipe.illustrationPrompt;
+    const imageUrl = recipe.imageUrl;
 
-    let aiPrompt = `${recipe.name} realistic korean food photography naver blog style delicious close up 4k high resolution`;
-    if (isDoenjang) {
-        aiPrompt = `${recipe.name} illustration drawing hand-drawn artistic style warm colors cozy delicious korean food`;
-    } else if (isKimchi) {
-        aiPrompt = "Kimchi Jjigae korean stew delicious red spicy tofu pork meat realistic photography 4k high quality warm lighting equivalent to 50mm lens";
+    let displayUrl = "";
+
+    if (prompt) {
+        // User requested: "Execute illustration_prompt"
+        // We use Pollinations as a real-time generator
+        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`;
+    } else if (imageUrl) {
+        // Fallback to Unsplash or other stored URL
+        displayUrl = imageUrl;
+    } else {
+        // Fallback generic generation
+        const genericPrompt = `${recipe.name} delicious korean food authentic photography 4k`;
+        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`;
     }
-
-    const useAiImage = isDoenjang || isKimchi;
-    const displayUrl = useAiImage
-        ? `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`
-        : (recipe.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(aiPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`);
 
     return (
         <main className="min-h-screen bg-gray-50/50 pb-24">
@@ -254,28 +257,42 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                 </button>
             </div>
 
-            {/* AI Generated Image Header */}
-            <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
+            {/* AI Generated Image Header (Menu Card Style) */}
+            <div className="relative h-64 w-full bg-gray-900 overflow-hidden shadow-inner group">
+                {/* Background Image */}
                 <img
                     src={displayUrl}
                     alt={recipe.name}
-                    className="h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
                         e.currentTarget.style.display = 'none';
                         e.currentTarget.nextElementSibling?.classList.remove('hidden');
                     }}
                 />
+
                 {/* Fallback Icon */}
-                <div className="hidden h-full w-full items-center justify-center bg-gray-200 absolute inset-0 text-gray-400">
-                    <ChefHat className="h-16 w-16 opacity-30" />
+                <div className="hidden h-full w-full items-center justify-center bg-gray-800 absolute inset-0 text-gray-600">
+                    <ChefHat className="h-16 w-16 opacity-50" />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute bottom-4 left-4 text-white">
-                    <p className="text-xs font-medium opacity-80 mb-1">Recipe Details</p>
-                    <h2 className="text-3xl font-black shadow-black drop-shadow-md flex items-end gap-2">
+
+                {/* Gray Gradient Overlay (Background Recognition) */}
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent" />
+
+                {/* Text Content (Front) */}
+                <div className="absolute bottom-6 left-6 right-6 text-white z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold text-orange-400 bg-orange-950/80 px-2 py-0.5 rounded-full border border-orange-500/30">
+                            v0.1.4
+                        </span>
+                        {prompt && <span className="text-[10px] text-gray-300 bg-black/40 px-2 py-0.5 rounded-full border border-white/10 uppercase tracking-wider">AI Generated</span>}
+                    </div>
+
+                    <h2 className="text-4xl font-black shadow-black drop-shadow-lg leading-tight tracking-tight">
                         {recipe.name}
-                        <span className="text-xs font-bold opacity-60 bg-black/20 px-2 py-0.5 rounded-full mb-1">v0.1.3</span>
                     </h2>
+                    <p className="text-sm text-gray-300 font-medium mt-1 opacity-90 line-clamp-1">
+                        {recipe.description || "설명 없음"}
+                    </p>
                 </div>
             </div>
 

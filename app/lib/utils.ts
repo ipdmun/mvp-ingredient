@@ -11,6 +11,7 @@ export function getIngredientIcon(name: string): string {
     if (n.includes("당근")) return "🥕";
     if (n.includes("오이") || n.includes("애호박")) return "🥒";
     if (n.includes("토마토") || n.includes("방울")) return "🍅";
+    if (n.includes("김치")) return "🥬"; // Kimchi
     if (n.includes("쌀") || n.includes("밥")) return "🍚";
     if (n.includes("고기") || n.includes("돼지") || n.includes("소") || n.includes("한우")) return "🥩";
     if (n.includes("닭") || n.includes("치킨")) return "🍗";
