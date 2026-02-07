@@ -11,11 +11,11 @@ const getGeminiModel = () => {
         throw new Error("Missing GOOGLE_API_KEY");
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    return genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 };
 
 export async function POST(request: Request) {
-    console.log("🔥 [API] AI Vision 요청: Google Gemini (1.5 Flash) 모드 가동 🔥");
+    console.log("🔥 [API] AI Vision 요청: Google Gemini (1.5 Pro) 모드 가동 🔥");
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File;
