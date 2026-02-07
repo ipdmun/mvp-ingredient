@@ -25,6 +25,7 @@ export async function POST(request: Request) {
                 { status: 500 }
             );
         }
+        console.log(`🔑 API Key Loaded: ${apiKey.substring(0, 4)}...****** (${apiKey.length} chars)`);
 
         // Convert file to base64
         const buffer = Buffer.from(await file.arrayBuffer());
@@ -76,25 +77,29 @@ export async function POST(request: Request) {
 }
 `;
 
-        const genAI = new GoogleGenerativeAI(apiKey);
+        const cleanedApiKey = apiKey.trim(); // Critical: Remove whitespace
+        const genAI = new GoogleGenerativeAI(cleanedApiKey);
 
         // Priority List of Models to Try
-        // Try specific versions first to avoid alias lookup failures
         const modelsToTry = [
-            "gemini-1.5-flash-001", // Specific version (Stable)
-            "gemini-1.5-pro-001",   // Specific version (Stable)
-            "gemini-1.5-flash",     // Alias
-            "gemini-1.5-pro",       // Alias
-            "gemini-pro-vision"     // Legacy 1.0
+            "gemini-1.5-flash",     // Alias (Latest Stable)
+            "gemini-1.5-pro",       // Alias (Latest Stable)
+            "gemini-1.5-flash-001",
+            "gemini-1.5-pro-001",
+            "gemini-pro-vision",    // Legacy
+            "gemini-pro"            // Legacy Text-only (Last resort, might fail on image)
         ];
 
         let text = null;
         let usedModel = "";
+        const errorLogs: string[] = [];
 
         for (const modelName of modelsToTry) {
             try {
                 console.log(`📡 Trying Model: ${modelName}...`);
-                const model = genAI.getGenerativeModel({ model: modelName });
+                // Force v1 API for stable models, v1beta for others if needed. 
+                // Mostly v1 is safer for 1.5 Flash/Pro now.
+                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
 
                 const result = await model.generateContent([
                     systemPrompt,
@@ -112,12 +117,14 @@ export async function POST(request: Request) {
                 break; // Stop if success
             } catch (error: any) {
                 console.warn(`⚠️ Failed with Model: ${modelName}`, error.message);
+                errorLogs.push(error.message);
                 // Continue to next model
             }
         }
 
         if (!text) {
-            throw new Error(`모든 AI 모델 연결에 실패했습니다. (API Key 권한 혹은 지역 제한 확인 필요)`);
+            const detailedErrorLog = modelsToTry.map((m, i) => `[${m}]: ${errorLogs[i] || 'Unknown Error'}`).join('\n');
+            throw new Error(`모든 모델 연결 실패:\n${detailedErrorLog}`);
         }
 
         console.log("🤖 Gemini Raw Response:", text);
