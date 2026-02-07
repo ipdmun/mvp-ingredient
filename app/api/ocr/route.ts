@@ -4,10 +4,14 @@ import { RECIPE_PRESETS } from "@/app/lib/constants";
 
 export const dynamic = 'force-dynamic';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client lazily
+const getOpenAIClient = () => {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+        throw new Error("Missing OPENAI_API_KEY");
+    }
+    return new OpenAI({ apiKey });
+};
 
 export async function POST(request: Request) {
     console.log("🔥 [API] AI Vision 요청: 식자재 전문가(VLM) 모드 가동 🔥");
@@ -91,6 +95,7 @@ export async function POST(request: Request) {
 \`\`\`
 `;
 
+        const openai = getOpenAIClient();
         const response = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
