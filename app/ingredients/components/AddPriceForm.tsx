@@ -31,7 +31,10 @@ export default function AddPriceForm({ ingredientId, unit }: Props) {
                 body: formData,
             });
 
-            if (!res.ok) throw new Error("OCR Failed");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "OCR Failed");
+            }
 
             const data = await res.json();
             // 0원 이하, 너무 작은 값 제외하고 정렬
@@ -41,8 +44,8 @@ export default function AddPriceForm({ ingredientId, unit }: Props) {
 
             setCandidates(validCandidates);
             setShowModal(true);
-        } catch (error) {
-            alert("영수증 인식에 실패했습니다. 직접 입력해주세요.");
+        } catch (error: any) {
+            alert(error.message || "영수증 인식에 실패했습니다. 직접 입력해주세요.");
             console.error(error);
         } finally {
             setIsProcessing(false);

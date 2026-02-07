@@ -47,15 +47,18 @@ export default function GlobalCameraFab({ ingredients }: Props) {
                 body: formData,
             });
 
-            if (!res.ok) throw new Error("OCR Failed");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "OCR Failed");
+            }
 
             const data = await res.json();
             setOcrItems(data.items);
             setAnalystReport(data.analystReport || []); // Capture report
             setIsModalOpen(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("영수증 인식에 실패했습니다.");
+            alert(error.message || "영수증 인식에 실패했습니다.");
         } finally {
             setIsThinking(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
