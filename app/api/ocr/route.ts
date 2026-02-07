@@ -28,9 +28,9 @@ export async function POST(request: Request) {
 
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            console.error("OPENAI_API_KEY is missing.");
+            console.error("🔥 [API] OPENAI_API_KEY is missing on server.");
             return NextResponse.json(
-                { error: "OpenAI API Key가 설정되지 않았습니다." },
+                { error: "구글/OpenAI API 키가 서버에 설정되지 않았습니다. (Vercel 환경변수 확인 필요)" },
                 { status: 500 }
             );
         }
