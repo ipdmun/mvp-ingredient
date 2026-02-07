@@ -1,50 +1,32 @@
-"use client";
+import { convertPriceForDisplay } from "@/app/lib/utils";
 
-import { useState } from "react";
-import { updateIngredientPrice, deleteIngredientPrice } from "../actions";
-import { Edit2, Trash2, Check, X } from "lucide-react";
-
-type PriceRecord = {
-    id: number;
-    price: number; // Unit Price
-    totalPrice: number | null;
-    amount: number | null;
-    unit: string;
-    source: string;
-    recordedAt: string | Date; // Allow string from JSON serialization
-    marketData?: any;
-};
+// ... existing imports
 
 type Props = {
     prices: PriceRecord[];
     lowestPriceId?: number;
+    ingredientUnit: string;
 };
 
-export default function PriceHistoryTableV2({ prices, lowestPriceId }: Props) {
-    const [editingId, setEditingId] = useState<number | null>(null);
-
-    const handleEdit = (id: number) => {
-        setEditingId(id);
-    };
-
-    const handleCancel = () => {
-        setEditingId(null);
-    };
+export default function PriceHistoryTableV2({ prices, lowestPriceId, ingredientUnit }: Props) {
+    // ... existing state and handlers
 
     return (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             {prices.length === 0 ? (
+                // ... empty state
                 <div className="p-8 text-center text-sm text-gray-500">
                     아직 기록된 가격이 없습니다.
                 </div>
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
+                        {/* ... thead ... */}
                         <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                             <tr>
                                 <th className="px-6 py-4">출처</th>
                                 <th className="px-6 py-4">구매 정보 (총액)</th>
-                                <th className="px-6 py-4">단가 환산</th>
+                                <th className="px-6 py-4">단가 환산 ({ingredientUnit.toLowerCase()}당)</th>
                                 <th className="px-6 py-4 text-right">날짜</th>
                                 <th className="px-6 py-4 text-center bg-blue-50 text-blue-700">관리 (수정/삭제)</th>
                             </tr>
@@ -59,6 +41,7 @@ export default function PriceHistoryTableV2({ prices, lowestPriceId }: Props) {
                                     onEdit={() => handleEdit(p.id)}
                                     onCancel={handleCancel}
                                     onSaveSuccess={() => setEditingId(null)}
+                                    ingredientUnit={ingredientUnit}
                                 />
                             ))}
                         </tbody>
@@ -69,56 +52,31 @@ export default function PriceHistoryTableV2({ prices, lowestPriceId }: Props) {
     );
 }
 
-function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess }: {
+function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess, ingredientUnit }: {
     price: PriceRecord;
     isLowest: boolean;
     isEditing: boolean;
     onEdit: () => void;
     onCancel: () => void;
     onSaveSuccess: () => void;
+    ingredientUnit: string;
 }) {
-    const [isSaving, setIsSaving] = useState(false);
+    // ... existing state and logic
 
-    // Initialize form defaults
-    const defaultTotal = price.totalPrice || price.price;
-    const defaultAmount = price.amount || 1;
-    const defaultUnit = price.unit;
-    const defaultSource = price.source;
-    // Format date for input [YYYY-MM-DD]
-    const defaultDate = new Date(price.recordedAt).toISOString().split('T')[0];
-
-    const handleSave = async (formData: FormData) => {
-        setIsSaving(true);
-        try {
-            await updateIngredientPrice(price.id, formData);
-            onSaveSuccess();
-        } catch (e) {
-            console.error(e);
-            alert("수정 실패");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!confirm("정말 삭제하시겠습니까?")) return;
-        setIsSaving(true);
-        try {
-            await deleteIngredientPrice(price.id);
-        } catch (e) {
-            console.error(e);
-            alert("삭제 실패");
-        } finally {
-            setIsSaving(false);
-        }
-    };
+    // Calculate display price in the Ingredient's Preferred Unit
+    // price.price is usually per 'g' or 'ml' (normalized)
+    // ingredientUnit might be 'kg', 'l', etc.
+    // convertPriceForDisplay(price, fromUnit, toUnit)
+    const displayUnitPrice = convertPriceForDisplay(price.price, price.unit, ingredientUnit);
 
     if (isEditing) {
+        // ... existing edit form (return logic)
+        // Keeping existing edit form
         return (
             <tr className="bg-yellow-50 border-2 border-yellow-400 shadow-lg relative z-10">
                 <td colSpan={5} className="p-4">
                     <form action={handleSave} className="flex flex-wrap items-end gap-3">
-                        {/* Source */}
+                        {/* ... Source ... */}
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-gray-500">출처</span>
                             <input
@@ -129,7 +87,7 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                             />
                         </div>
 
-                        {/* Total Price */}
+                        {/* ... Total Price ... */}
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-gray-500">총 구매가</span>
                             <input
@@ -141,20 +99,20 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                             />
                         </div>
 
-                        {/* Amount */}
+                        {/* ... Amount ... */}
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-gray-500">수량</span>
+                            <span className="text-xs font-bold text-gray-500">수량 ({defaultUnit})</span>
                             <input
                                 name="amount"
                                 type="number"
-                                step="any" // Allow float
+                                step="any"
                                 defaultValue={defaultAmount}
                                 className="w-20 rounded-md border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                                 required
                             />
                         </div>
 
-                        {/* Unit */}
+                        {/* ... Unit ... */}
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-gray-500">단위</span>
                             <input
@@ -166,7 +124,7 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                             />
                         </div>
 
-                        {/* Date */}
+                        {/* ... Date ... */}
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-gray-500">날짜</span>
                             <input
@@ -218,8 +176,8 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                 )}
             </td>
             <td className="px-6 py-4 text-blue-600 font-bold">
-                {/* Unit Price Calculation Display */}
-                {Math.round(price.price).toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{price.unit.toLowerCase() === 'g' || price.unit.toLowerCase() === 'ml' ? price.unit.toLowerCase() : '1' + price.unit.toLowerCase()}</span>
+                {/* Display Price converted to Ingredient Unit */}
+                {displayUnitPrice.toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{ingredientUnit.toLowerCase()}</span>
             </td>
             <td className="px-6 py-4 text-right text-gray-400 text-xs">
                 {new Date(price.recordedAt).toLocaleDateString()}

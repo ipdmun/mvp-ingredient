@@ -11,7 +11,7 @@ import { authOptions } from "@/app/lib/auth";
 function calculateNormalizedPrice(price: number, amount: number, unit: string) {
     // 1. Basic Unit Price (Total Price / Amount)
     let unitPrice = amount > 0 ? price / amount : price;
-    let normalizedUnit = unit;
+    let normalizedAmount = amount;
 
     // 2. Normalize Unit (kg -> g, l -> ml)
     const lowerUnit = unit.toLowerCase().trim();
@@ -19,27 +19,31 @@ function calculateNormalizedPrice(price: number, amount: number, unit: string) {
     if (lowerUnit === 'kg') {
         unitPrice = unitPrice / 1000; // Price per kg -> Price per g
         normalizedUnit = 'g';
+        normalizedAmount = amount * 1000;
     } else if (lowerUnit === 'l' || lowerUnit === 'liter') {
         unitPrice = unitPrice / 1000; // Price per L -> Price per ml
         normalizedUnit = 'ml';
+        normalizedAmount = amount * 1000;
     } else if (lowerUnit === '돈') {
         unitPrice = unitPrice / 3.75; // Price per don -> Price per g (approx)
         normalizedUnit = 'g';
+        normalizedAmount = amount * 3.75;
     } else if (lowerUnit === '근') {
         unitPrice = unitPrice / 600; // Meat usually 600g
         normalizedUnit = 'g';
+        normalizedAmount = amount * 600;
     } else if (lowerUnit === '모') {
-        // Tofu average ~350g (updated per user request).
-        // If amount is 1, it means 1 block = 350g.
-        // Price per 'block' needed to convert to Price per 'g'.
-        // Unit Price (per block) / 350 = Price per g
+        // Tofu average 350g (updated per user request).
+        // 1 block = 350g
         unitPrice = unitPrice / 350;
         normalizedUnit = 'g';
+        normalizedAmount = amount * 350;
     }
 
     return {
         unitPrice: Math.round(unitPrice * 100) / 100, // Keep 2 decimal places for precision
-        unit: normalizedUnit
+        unit: normalizedUnit,
+        amount: normalizedAmount
     };
 }
 
@@ -152,9 +156,7 @@ export async function createIngredient(formData: FormData) {
             price: normalized.unitPrice, // Save Normalized Unit Price (e.g. per g)
             totalPrice: price, // Save Total Paid
             unit: normalized.unit, // Save Normalized Unit (e.g. g)
-            amount: amount, // Keep original amount for record? Or should we store normalized amount? 
-            // Current DB schema is loose, but let's keep original amount for now and user sees 'kg' in source.
-            // BUT `unit` input to savePriceLogic acts as the *Base Unit* for the price.
+            amount: normalized.amount, // Save Normalized Amount
             source: "직접 입력",
             marketData: analysis
         });
@@ -227,7 +229,7 @@ export async function createIngredientPrice(ingredientId: number, formData: Form
     await savePriceLogic(userId, ingredientId, {
         price: normalized.unitPrice,
         totalPrice: finalTotalPrice,
-        amount: amount || 1,
+        amount: normalized.amount,
         unit: normalized.unit,
         source
     });
@@ -331,7 +333,7 @@ export async function createBulkIngredientPrices(items: {
             await savePriceLogic(userId, ingredientId, {
                 price: finalUnitPrice,
                 totalPrice: safeTotalPrice,
-                amount: safeAmount,
+                amount: safeTotalPrice && safeAmount ? calculateNormalizedPrice(safeTotalPrice, safeAmount, item.unit).amount : safeAmount, // Recalculate if possible to get normalized Amount
                 unit: finalUnit, // normalized unit
                 source: item.source || "Unknown",
                 marketData: item.marketData || null
@@ -428,7 +430,7 @@ export async function updateIngredientPrice(priceId: number, formData: FormData)
         data: {
             price: normalized.unitPrice,
             totalPrice: inputTotalPrice,
-            amount: inputAmount || 1,
+            amount: normalized.amount,
             unit: normalized.unit,
             source,
             recordedAt: recordedAt ? new Date(recordedAt) : priceRecord.recordedAt
