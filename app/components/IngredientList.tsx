@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X } from "lucide-react";
-import { getIngredientIcon } from "@/app/lib/utils";
+import { getIngredientIcon, convertPriceForDisplay } from "@/app/lib/utils";
 import { deleteIngredient, refreshIngredientPrice, bulkDeleteIngredients } from "@/app/ingredients/actions";
 
 type Price = {
@@ -157,8 +157,8 @@ export default function IngredientList({ initialIngredients }: Props) {
                     <button
                         onClick={handleSelectAll}
                         className={`group flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${selectedIds.length > 0 && selectedIds.length === filteredAndSortedIngredients.length
-                                ? "bg-blue-600 border-blue-600 text-white"
-                                : "bg-white border-gray-200 text-gray-500 hover:border-blue-400"
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : "bg-white border-gray-200 text-gray-500 hover:border-blue-400"
                             }`}
                     >
                         {selectedIds.length > 0 && selectedIds.length === filteredAndSortedIngredients.length ? (
@@ -253,8 +253,8 @@ export default function IngredientList({ initialIngredients }: Props) {
                                 <button
                                     onClick={() => toggleSelection(item.id)}
                                     className={`p-1 rounded-md transition-all ${isSelected
-                                            ? "text-blue-600 bg-white shadow-sm ring-1 ring-blue-100"
-                                            : "text-gray-300 hover:text-blue-400 bg-white/0 hover:bg-white"
+                                        ? "text-blue-600 bg-white shadow-sm ring-1 ring-blue-100"
+                                        : "text-gray-300 hover:text-blue-400 bg-white/0 hover:bg-white"
                                         }`}
                                 >
                                     {isSelected ? <CheckSquare className="h-6 w-6" /> : <Square className="h-6 w-6" />}
@@ -283,7 +283,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                     <div className="text-right shrink-0">
                                         <div className="flex flex-col items-end">
                                             <p className="text-xl font-black text-gray-900">
-                                                {latest > 0 ? `${latest.toLocaleString()}원` : "기록 없음"}
+                                                {latest > 0 ? `${convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', item.unit).toLocaleString()}원` : "기록 없음"}
                                             </p>
                                             <div className="mt-1 flex gap-1">
                                                 {previous && (
@@ -352,8 +352,8 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             )}
                                             <div>
                                                 <p className="text-[10px] font-bold text-gray-400">7일 평균</p>
-                                                <p className="text-sm font-black text-gray-700">
-                                                    {weekAvg > 0 ? `${weekAvg.toLocaleString()}원` : "-"}
+                                                <p className="text-lg font-black text-gray-700">
+                                                    {weekAvg > 0 ? `${convertPriceForDisplay(weekAvg, item.prices[0]?.unit || 'g', item.unit).toLocaleString()}원` : "-"}
                                                 </p>
                                             </div>
                                             <span className="text-[10px] font-medium text-gray-400 group-hover:text-blue-500">

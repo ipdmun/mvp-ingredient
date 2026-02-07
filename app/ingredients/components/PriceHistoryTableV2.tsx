@@ -115,16 +115,16 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
 
     if (isEditing) {
         return (
-            <tr className="bg-blue-50/50">
+            <tr className="bg-yellow-50 border-2 border-yellow-400 shadow-lg relative z-10">
                 <td colSpan={5} className="p-4">
-                    <form action={handleSave} className="flex flex-wrap items-center gap-3">
+                    <form action={handleSave} className="flex flex-wrap items-end gap-3">
                         {/* Source */}
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-gray-500">출처</span>
                             <input
                                 name="source"
                                 defaultValue={defaultSource}
-                                className="w-24 rounded border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="w-28 rounded-md border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                                 required
                             />
                         </div>
@@ -136,7 +136,7 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                                 name="totalPrice"
                                 type="number"
                                 defaultValue={defaultTotal}
-                                className="w-24 rounded border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="w-28 rounded-md border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                                 required
                             />
                         </div>
@@ -147,9 +147,9 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                             <input
                                 name="amount"
                                 type="number"
-                                step="0.01"
+                                step="any" // Allow float
                                 defaultValue={defaultAmount}
-                                className="w-16 rounded border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="w-20 rounded-md border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                                 required
                             />
                         </div>
@@ -159,8 +159,9 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                             <span className="text-xs font-bold text-gray-500">단위</span>
                             <input
                                 name="unit"
-                                defaultValue={defaultUnit}
-                                className="w-16 rounded border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                defaultValue={defaultUnit.toLowerCase()}
+                                placeholder="g, kg, ml..."
+                                className="w-20 rounded-md border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white lowercase"
                                 required
                             />
                         </div>
@@ -172,26 +173,26 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
                                 name="recordedAt"
                                 type="date"
                                 defaultValue={defaultDate}
-                                className="rounded border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="rounded-md border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                                 required
                             />
                         </div>
 
-                        <div className="flex items-center gap-2 mt-auto pb-1 ml-auto">
+                        <div className="flex items-center gap-2 mb-[1px] ml-auto">
                             <button
                                 type="submit"
                                 disabled={isSaving}
-                                className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50"
+                                className="rounded-md bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-green-500 disabled:opacity-50 transition-all flex items-center gap-1"
                             >
-                                {isSaving ? "..." : <Check className="h-4 w-4" />}
+                                {isSaving ? "..." : <><Check className="h-4 w-4" /> 저장</>}
                             </button>
                             <button
                                 type="button"
                                 onClick={onCancel}
                                 disabled={isSaving}
-                                className="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                                className="rounded-md bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-all flex items-center gap-1"
                             >
-                                <X className="h-4 w-4" />
+                                <X className="h-4 w-4" /> 취소
                             </button>
                         </div>
                     </form>
@@ -201,16 +202,16 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
     }
 
     return (
-        <tr className={`hover:bg-gray-50 group ${isLowest ? "bg-green-50/50" : ""}`}>
+        <tr className={`hover:bg-gray-50 group border-b border-gray-100 last:border-0 transition-colors ${isLowest ? "bg-green-50/30" : ""}`}>
             <td className="px-6 py-4 font-medium text-gray-900">
                 {price.source}
-                {isLowest && <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">최저가</span>}
+                {isLowest && <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-800">최저가</span>}
             </td>
             <td className="px-6 py-4 text-gray-700">
                 {price.totalPrice ? (
                     <div className="flex flex-col">
                         <span className="font-bold">{price.totalPrice.toLocaleString()}원</span>
-                        <span className="text-xs text-gray-500">({price.amount}{price.unit})</span>
+                        <span className="text-xs text-gray-500">({price.amount}{price.unit.toLowerCase()})</span>
                     </div>
                 ) : (
                     <span className="text-gray-400">-</span>
@@ -218,7 +219,7 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess 
             </td>
             <td className="px-6 py-4 text-blue-600 font-bold">
                 {/* Unit Price Calculation Display */}
-                {Math.round(price.price).toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{price.unit === 'g' || price.unit === 'ml' ? price.unit : '1' + price.unit}</span>
+                {Math.round(price.price).toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{price.unit.toLowerCase() === 'g' || price.unit.toLowerCase() === 'ml' ? price.unit.toLowerCase() : '1' + price.unit.toLowerCase()}</span>
             </td>
             <td className="px-6 py-4 text-right text-gray-400 text-xs">
                 {new Date(price.recordedAt).toLocaleDateString()}

@@ -23,3 +23,32 @@ export function getIngredientIcon(name: string): string {
 
     return "📦";
 }
+
+export function formatUnit(unit: string): string {
+    return unit.toLowerCase();
+}
+
+/**
+ * Converts a price from one unit to another for display.
+ * @param price Raw price value
+ * @param fromUnit Unit of the raw price (e.g. 'g')
+ * @param toUnit Target display unit (e.g. 'kg')
+ */
+export function convertPriceForDisplay(price: number, fromUnit: string, toUnit: string): number {
+    const from = fromUnit.toLowerCase();
+    const to = toUnit.toLowerCase();
+
+    if (from === to) return price;
+
+    // g -> kg
+    if (from === 'g' && to === 'kg') return price * 1000;
+    // ml -> l
+    if (from === 'ml' && to === 'l') return price * 1000;
+
+    // kg -> g
+    if (from === 'kg' && to === 'g') return price / 1000;
+    // l -> ml
+    if (from === 'l' && to === 'ml') return price / 1000;
+
+    return price;
+}
