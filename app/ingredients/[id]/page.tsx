@@ -120,10 +120,9 @@ export default async function IngredientDetailPage(props: Props) {
                             prices={ingredient.prices.map(p => ({
                                 ...p,
                                 recordedAt: p.recordedAt.toISOString(), // Serialize Date to string
-                                totalPrice: p.totalPrice ?? 0,
-                                amount: p.amount ?? 0
                             }))}
                             lowestPriceId={lowestPrice?.id}
+                            ingredientUnit={ingredient.unit}
                         />
                     </div>
                 </div>
