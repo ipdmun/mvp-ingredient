@@ -11,6 +11,7 @@ import { authOptions } from "@/app/lib/auth";
 function calculateNormalizedPrice(price: number, amount: number, unit: string) {
     // 1. Basic Unit Price (Total Price / Amount)
     let unitPrice = amount > 0 ? price / amount : price;
+    let normalizedUnit = unit;
     let normalizedAmount = amount;
 
     // 2. Normalize Unit (kg -> g, l -> ml)
