@@ -77,7 +77,9 @@ export async function POST(request: Request) {
 }
 `;
 
-        const cleanedApiKey = apiKey.trim(); // Critical: Remove whitespace
+        const cleanedApiKey = apiKey.trim();
+        console.log(`🔑 API Key Configured: ${cleanedApiKey.substring(0, 4)}...****** (Len: ${cleanedApiKey.length})`);
+
         const genAI = new GoogleGenerativeAI(cleanedApiKey);
 
         // Priority List of Models to Try
@@ -122,8 +124,24 @@ export async function POST(request: Request) {
         }
 
         if (!text) {
+            // Diagnostic: Try to list models via raw HTTP to check key permissions/visibility
+            let debugInfo = "";
+            try {
+                const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanedApiKey}`);
+                if (listResp.ok) {
+                    const listData = await listResp.json();
+                    const availableModels = (listData.models || []).map((m: any) => m.name).join(", ");
+                    debugInfo = `\n[Key Valid] Available Models: ${availableModels}`;
+                } else {
+                    const errText = await listResp.text();
+                    debugInfo = `\n[Key Error] ListModels failed (${listResp.status}): ${errText}`;
+                }
+            } catch (e) {
+                debugInfo = `\n[Network Error] Could not list models: ${e}`;
+            }
+
             const detailedErrorLog = modelsToTry.map((m, i) => `[${m}]: ${errorLogs[i] || 'Unknown Error'}`).join('\n');
-            throw new Error(`모든 모델 연결 실패:\n${detailedErrorLog}`);
+            throw new Error(`모든 모델 연결 실패 (Key 진단 결과:${debugInfo}):\n${detailedErrorLog}`);
         }
 
         console.log("🤖 Gemini Raw Response:", text);
