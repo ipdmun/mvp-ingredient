@@ -4,18 +4,8 @@ import { RECIPE_PRESETS } from "@/app/lib/constants";
 
 export const dynamic = 'force-dynamic';
 
-// Initialize Google Gemini client lazily
-const getGeminiModel = () => {
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
-        throw new Error("Missing GOOGLE_API_KEY");
-    }
-    const genAI = new GoogleGenerativeAI(apiKey);
-    return genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-};
-
 export async function POST(request: Request) {
-    console.log("🔥 [API] AI Vision 요청: Google Gemini (1.5 Pro) 모드 가동 🔥");
+    console.log("🔥 [API] AI Vision 요청: Google Gemini (Auto-Fallback) 모드 가동 🔥");
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File;
@@ -86,20 +76,49 @@ export async function POST(request: Request) {
 }
 `;
 
-        const model = getGeminiModel();
+        const genAI = new GoogleGenerativeAI(apiKey);
 
-        const result = await model.generateContent([
-            systemPrompt,
-            {
-                inlineData: {
-                    data: base64Image,
-                    mimeType: file.type
-                }
+        // Priority List of Models to Try
+        // Try specific versions first to avoid alias lookup failures
+        const modelsToTry = [
+            "gemini-1.5-flash-001", // Specific version (Stable)
+            "gemini-1.5-pro-001",   // Specific version (Stable)
+            "gemini-1.5-flash",     // Alias
+            "gemini-1.5-pro",       // Alias
+            "gemini-pro-vision"     // Legacy 1.0
+        ];
+
+        let text = null;
+        let usedModel = "";
+
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`📡 Trying Model: ${modelName}...`);
+                const model = genAI.getGenerativeModel({ model: modelName });
+
+                const result = await model.generateContent([
+                    systemPrompt,
+                    {
+                        inlineData: {
+                            data: base64Image,
+                            mimeType: file.type
+                        }
+                    }
+                ]);
+                const response = await result.response;
+                text = response.text();
+                usedModel = modelName;
+                console.log(`✅ Success with Model: ${modelName}`);
+                break; // Stop if success
+            } catch (error: any) {
+                console.warn(`⚠️ Failed with Model: ${modelName}`, error.message);
+                // Continue to next model
             }
-        ]);
+        }
 
-        const response = await result.response;
-        let text = response.text();
+        if (!text) {
+            throw new Error(`모든 AI 모델 연결에 실패했습니다. (API Key 권한 혹은 지역 제한 확인 필요)`);
+        }
 
         console.log("🤖 Gemini Raw Response:", text);
 
@@ -117,21 +136,24 @@ export async function POST(request: Request) {
             if (match) {
                 try {
                     // Try to construct a valid object if full parse fails
-                    // NOTE: Gemini might return valid JSON wrapped in text.
-                    // If match is found but it's just the items array, we need to wrap it.
-                    // However, we asked for { items: [], analystReport: [] }
-                    // Let's try to find the outermost brace
                     const braceMatch = text.match(/\{[\s\S]*\}/);
                     if (braceMatch) {
                         jsonResponse = JSON.parse(braceMatch[0]);
                     } else {
-                        throw new Error("Invalid structure");
+                        // As a fallback, try to parse just the array if that's all we got
+                        const items = JSON.parse(match[0]);
+                        jsonResponse = { items, analystReport: ["JSON 파싱 실패로 자동 복구됨"] };
                     }
                 } catch (e2) {
                     throw new Error("Invalid JSON response from Gemini");
                 }
             } else {
-                throw new Error("Invalid JSON response from Gemini");
+                try {
+                    const fixedText = text.replace(/,(\s*[}\]])/g, '$1');
+                    jsonResponse = JSON.parse(fixedText);
+                } catch (e3) {
+                    throw new Error("Invalid JSON response from Gemini");
+                }
             }
         }
 
@@ -143,13 +165,6 @@ export async function POST(request: Request) {
         // --- Post-processing: Market Analysis & Recipe Linking ---
         // Even with AI, we might want to attach our internal recipe data or market warnings.
         // The VLM does the extraction, we settle the internal logic here.
-
-        // We can't dynamically import from @/app/lib/naver easily if not a top level usage sometimes,
-        // but let's keep it as is if it worked before.
-        // Actually, require/import inside handler is fine in Next.js.
-
-        // Mock getMarketAnalysis if import fails or just empty logic for now to save time
-        // Re-using the logic from previous OpenAI implementation
 
         const processedItems = await Promise.all(jsonResponse.items.map(async (item: any) => {
             // [Safety Check 1] Remove digits/special chars from name
@@ -204,7 +219,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             items: processedItems,
             analystReport: jsonResponse.analystReport,
-            rawText: "Google Gemini (1.5 Flash)",
+            rawText: `Google Gemini (${usedModel})`, // Return used model name
             analystMode: true
         });
 
