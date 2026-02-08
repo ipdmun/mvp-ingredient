@@ -8,6 +8,7 @@ import DeleteRecipeButton from "@/app/components/DeleteRecipeButton";
 import { updateRecipe } from "@/app/recipes/actions";
 import { KOREAN_FOOD_IMAGES } from "@/app/lib/koreanFoodImages";
 import RecipeCard from "@/app/recipes/RecipeCard";
+import ScrollButtons from "@/app/components/ScrollButtons";
 
 export default function RecipeListContainer() {
     const [recipes, setRecipes] = useState<any[]>([]);
@@ -102,6 +103,7 @@ export default function RecipeListContainer() {
                     </div>
                 )
             }
+            <ScrollButtons />
         </div >
     );
 }

@@ -2,9 +2,9 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { ChefHat, ArrowRight, Pencil, Check, X, Camera, Loader2, ImagePlus } from "lucide-react";
+import { ChefHat, ArrowRight, Pencil, Check, X, Camera, Loader2, ImagePlus, RotateCcw } from "lucide-react";
 import DeleteRecipeButton from "@/app/components/DeleteRecipeButton";
-import { updateRecipe, updateRecipeImage } from "@/app/recipes/actions";
+import { updateRecipe, updateRecipeImage, deleteRecipeImage } from "@/app/recipes/actions";
 
 interface RecipeCardProps {
     recipe: any;
@@ -75,6 +75,27 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
             onEditSuccess();
         } catch (error) {
             alert("수정 실패");
+        }
+    };
+
+    const handleImageDelete = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!confirm("현재 이미지를 삭제하고 기본(AI) 이미지로 되돌리시겠습니까?")) return;
+
+        setIsImageLoading(true);
+        try {
+            const res = await deleteRecipeImage(recipe.id);
+            if (res.success) {
+                onEditSuccess();
+            } else {
+                alert(res.error || "이미지 삭제 실패");
+                setIsImageLoading(false);
+            }
+        } catch (error) {
+            console.error(error);
+            setIsImageLoading(false);
         }
     };
 
@@ -167,6 +188,19 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
                             onClick={(e) => e.stopPropagation()}
                         />
                     </div>
+
+                    {/* Revert Image Button (Only if custom image matches displayUrl OR recipe.imageUrl exists) */
+                        /* Note: If recipe.imageUrl exists, displayUrl uses it (unless prompt exists, but prompt is cleared on upload). */
+                        /* So if recipe.imageUrl is truthy, we show this button. */
+                        recipe.imageUrl && (
+                            <div
+                                onClick={handleImageDelete}
+                                className="absolute top-3 left-14 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer transition-opacity opacity-100 md:opacity-0 md:group-hover/image:opacity-100 z-20 backdrop-blur-sm"
+                                title="기본(AI) 이미지로 복원"
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                            </div>
+                        )}
 
                     <div className="absolute bottom-4 left-4 right-4 text-white z-20">
                         {isEditing ? (
