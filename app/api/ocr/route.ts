@@ -181,8 +181,6 @@ export async function POST(request: Request) {
             }
         }
 
-        // ... (Previous code remains, but I need to inject logic after obtaining jsonResponse)
-
         // Ensure structure
         if (!jsonResponse.items) jsonResponse.items = [];
         // Reset analystReport for our own generation
@@ -193,8 +191,15 @@ export async function POST(request: Request) {
         let totalLoss = 0;
 
         // --- Post-processing: Market Analysis & Recipe Linking ---
-        // Dynamically import server action for market price check
-        const { checkMarketPrice } = await import("@/app/ingredients/actions");
+        // Dynamically import naver utility directly (Bypass Server Action for API Route)
+        const { getMarketAnalysis } = await import("@/app/lib/naver");
+
+        // [Debug] Check API Keys
+        const hasNaverKeys = !!(process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET);
+        if (!hasNaverKeys) {
+            console.error("🔥 [API] NAVER_CLIENT_ID or NAVER_CLIENT_SECRET is missing!");
+            businessReport.push("⚠️ [시스템] 네이버 쇼핑 검색 API 키가 설정되지 않았습니다. 환경변수를 확인해주세요.");
+        }
 
         const processedItems = await Promise.all(jsonResponse.items.map(async (item: any) => {
             // [Safety Check 1] Remove digits/special chars from name
@@ -246,11 +251,13 @@ export async function POST(request: Request) {
 
             // 2. Perform Market Analysis (Comparison)
             let marketAnalysis = null;
-            try {
-                // Pass TOTAL PRICE (item.price) to checkMarketPrice for accurate comparison
-                marketAnalysis = await checkMarketPrice(cleanName, item.price, item.unit, item.amount || 1);
-            } catch (e) {
-                console.error("Market Price Check Error for", cleanName, e);
+            if (hasNaverKeys) {
+                try {
+                    // Pass TOTAL PRICE (item.price) to getMarketAnalysis for accurate comparison
+                    marketAnalysis = await getMarketAnalysis(cleanName, item.price, item.unit, item.amount || 1);
+                } catch (e) {
+                    console.error("Market Analysis Failed for", cleanName, e);
+                }
             }
 
             // Accumulate Savings/Loss
@@ -333,7 +340,7 @@ export async function POST(request: Request) {
         });
 
     } catch (error: any) {
-        // ... (error handling)        console.error("🚨 Gemini OCR Error:", error);
+        console.error("🚨 Gemini OCR Error:", error);
         let errorMessage = error.message || "이미지 인식 실패";
         if (errorMessage.includes("API_KEY")) {
             errorMessage = "구글 API 키가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.";
