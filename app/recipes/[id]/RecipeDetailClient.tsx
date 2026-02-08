@@ -190,6 +190,14 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
         );
     };
 
+    const toggleSelectAll = () => {
+        if (selectedIds.length === recipeIngredients.length && recipeIngredients.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(recipeIngredients.map((ri: any) => ri.id));
+        }
+    };
+
     // [AI Prompt Logic]
     // Priority: 1. DB-stored Illustration Prompt -> 2. Video/Image URL (Unsplash) -> 3. Fallback Generate
     const prompt = recipe.illustrationPrompt;
@@ -446,7 +454,20 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                 {/* Ingredient List */}
                 <div className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                        <h3 className="font-bold text-gray-800">레시피 구성 (재료)</h3>
+                        <div className="flex items-center gap-3">
+                            {/* Select All Checkbox */}
+                            <div
+                                onClick={toggleSelectAll}
+                                className={`w-5 h-5 rounded-md border-2 cursor-pointer flex items-center justify-center transition-all ${selectedIds.length === recipeIngredients.length && recipeIngredients.length > 0
+                                        ? "bg-blue-600 border-blue-600"
+                                        : "border-gray-300 hover:border-blue-400 bg-white"
+                                    }`}
+                                title="전체 선택"
+                            >
+                                {selectedIds.length === recipeIngredients.length && recipeIngredients.length > 0 && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
+                            </div>
+                            <h3 className="font-bold text-gray-800">레시피 구성 (재료)</h3>
+                        </div>
                         <div className="flex items-center gap-2">
                             {selectedIds.length > 0 && (
                                 <button
