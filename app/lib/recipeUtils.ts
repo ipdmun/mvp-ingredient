@@ -139,6 +139,30 @@ export function convertIngredientAmount(
 }
 
 /**
+ * Helper to convert decimal amount to friendly fraction string if applicable.
+ */
+function toFractionString(val: number): string | number {
+    if (val >= 0.9 && val <= 1.1) return "1";
+    if (val >= 0.4 && val <= 0.6) return "1/2";
+    if (val >= 0.2 && val <= 0.3) return "1/4";
+    if (val >= 0.31 && val <= 0.35) return "1/3";
+    if (val >= 0.18 && val <= 0.22) return "1/5";
+
+    // Spoons specific
+    if (val >= 1.8 && val <= 2.2) return "2";
+    if (val >= 2.8 && val <= 3.2) return "3";
+
+    // Integer check
+    if (Number.isInteger(val)) return val;
+
+    // Default rounding
+    if (val > 1) return Number(val.toFixed(1));
+
+    // Small decimals
+    return Number(val.toFixed(2));
+}
+
+/**
  * Formats a recipe ingredient amount for friendly display.
  * e.g. "0.5 모" instead of "175 g" for Tofu.
  */
@@ -151,54 +175,37 @@ export function formatRecipeDisplay(name: string, amount: number, unit: string):
         // If unit is 'g', convert to '모' (block)
         if (displayUnit === 'g') {
             const blocks = amount / 350;
-            if (blocks >= 0.9 && blocks <= 1.1) return { amount: "1", unit: "모" };
-            if (blocks >= 0.4 && blocks <= 0.6) return { amount: "1/2", unit: "모" };
-            if (blocks >= 0.2 && blocks <= 0.3) return { amount: "1/4", unit: "모" };
-            // If irregular, keep g or show rounded blocks
-            if (blocks > 1) return { amount: Number(blocks.toFixed(1)), unit: "모" };
+            return { amount: toFractionString(blocks), unit: "모" };
         }
-        // If unit is 'piece'/'개', show as '모'
-        else if (displayUnit === '개' || displayUnit === 'piece' || displayUnit === 'ea') {
-            return { amount: amount, unit: "모" };
+        // If unit is 'piece'/'개', show as '모' with fraction logic
+        else if (displayUnit === '개' || displayUnit === 'piece' || displayUnit === 'ea' || displayUnit === '모') {
+            return { amount: toFractionString(amount), unit: "모" };
         }
     }
 
     // 2. Seasonings to Spoon (큰술)
-    // List of seasonings commonly used by spoon
     const spoonItems = ["간장", "고추장", "된장", "쌈장", "고춧가루", "설탕", "다진마늘", "간마늘", "참기름", "들기름", "식초", "맛술", "미림", "액젓", "굴소스", "물엿", "올리고당"];
     if (spoonItems.some(item => name.includes(item))) {
-        // If unit is 'g' or 'ml', try to convert to spoon
         if (displayUnit === 'g' || displayUnit === 'ml') {
             const stdWeight = UNIT_STANDARDS[Object.keys(UNIT_STANDARDS).find(k => name.includes(k)) || ""] || 15;
             const spoons = amount / stdWeight;
-
-            // Friendly fractions
-            if (spoons >= 0.9 && spoons <= 1.1) return { amount: "1", unit: "큰술" };
-            if (spoons >= 0.4 && spoons <= 0.6) return { amount: "1/2", unit: "큰술" };
-            if (spoons >= 0.2 && spoons <= 0.3) return { amount: "1/4", unit: "큰술" };
-            if (spoons >= 1.8 && spoons <= 2.2) return { amount: "2", unit: "큰술" };
-            if (spoons >= 2.8 && spoons <= 3.2) return { amount: "3", unit: "큰술" };
-
-            // If nice integer
-            if (Number.isInteger(spoons)) return { amount: spoons, unit: "큰술" };
-
-            // Else keep generic if it doesn't fit well, OR force 1 decimal
-            if (spoons > 0.5) return { amount: Number(spoons.toFixed(1)), unit: "큰술" };
+            return { amount: toFractionString(spoons), unit: "큰술" };
+        }
+        else if (displayUnit === '큰술' || displayUnit === 't' || displayUnit === 'tbsp') {
+            return { amount: toFractionString(amount), unit: "큰술" };
         }
     }
 
     // 3. Veggies to Pieces (개)
-    const pieceItems = ["양파", "오이", "애호박", "호박", "당근", "감자", "고구마"];
+    const pieceItems = ["양파", "오이", "애호박", "호박", "당근", "감자", "고구마", "대파", "쪽파", "청양고추", "홍고추", "고추", "피망", "파프리카", "무", "배추", "알배기", "양배추"];
     if (pieceItems.some(item => name.includes(item))) {
         if (displayUnit === 'g') {
             const stdWeight = UNIT_STANDARDS[Object.keys(UNIT_STANDARDS).find(k => name.includes(k)) || ""] || 100;
             const pieces = amount / stdWeight;
-
-            if (pieces >= 0.9 && pieces <= 1.1) return { amount: "1", unit: "개" };
-            if (pieces >= 0.4 && pieces <= 0.6) return { amount: "1/2", unit: "개" };
-            if (pieces >= 0.2 && pieces <= 0.3) return { amount: "1/4", unit: "개" };
-
-            if (pieces > 0.5) return { amount: Number(pieces.toFixed(1)), unit: "개" };
+            return { amount: toFractionString(pieces), unit: "개" };
+        }
+        else if (displayUnit === '개' || displayUnit === 'piece' || displayUnit === 'ea') {
+            return { amount: toFractionString(amount), unit: "개" };
         }
     }
 
@@ -212,7 +219,6 @@ export function formatRecipeDisplay(name: string, amount: number, unit: string):
     // Cleanup decimals for default case
     if (typeof displayAmount === 'number' && !Number.isInteger(displayAmount)) {
         displayAmount = Number(displayAmount.toFixed(1));
-        // Remove trailing .0 if any (handled by Number())
     }
 
     return { amount: displayAmount, unit: displayUnit };
