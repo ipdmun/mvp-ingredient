@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Camera, RefreshCw } from "lucide-react";
+import { X, Camera, RefreshCw, Image } from "lucide-react";
 
 type Props = {
     onCapture: (image: string) => void;
@@ -132,14 +132,36 @@ export default function CustomCameraModal({ onCapture, onClose }: Props) {
         }
     };
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (reader.result) {
+                onCapture(reader.result as string);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
     return (
         <div className="fixed inset-0 z-[70] flex flex-col bg-black">
+            <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileChange}
+            />
+
             {/* Header */}
             <div className="absolute top-0 flex w-full items-center justify-between p-4 z-10 bg-gradient-to-b from-black/50 to-transparent">
-                <button onClick={onClose} className="rounded-full bg-white/10 p-2 text-white">
+                <button onClick={onClose} className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors">
                     <X className="h-6 w-6" />
                 </button>
-                {/* Switch Camera Button Removed as per request */}
             </div>
 
             {/* Viewfinder */}
@@ -170,7 +192,16 @@ export default function CustomCameraModal({ onCapture, onClose }: Props) {
             </div>
 
             {/* Footer / Shutter */}
-            <div className="flex h-32 w-full items-center justify-center bg-black px-6">
+            <div className="flex h-32 w-full items-center justify-between bg-black px-10">
+                {/* Gallery Button */}
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white hover:bg-gray-700 active:scale-95 transition-all"
+                >
+                    <Image className="h-6 w-6" />
+                </button>
+
+                {/* Shutter Button */}
                 <button
                     onClick={capturePhoto}
                     disabled={!isStreamReady}
@@ -178,6 +209,9 @@ export default function CustomCameraModal({ onCapture, onClose }: Props) {
                 >
                     <div className="h-16 w-16 rounded-full bg-white group-active:bg-gray-200" />
                 </button>
+
+                {/* Placeholder for layout balance (or Switch Camera if enabled later) */}
+                <div className="w-12" />
             </div>
 
             {/* Hidden canvas for capture */}

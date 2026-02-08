@@ -156,7 +156,7 @@ export async function POST(request: Request) {
         } catch (e) {
             console.error("JSON Parse Error:", e);
             // Fallback for malformed JSON (basic array check)
-            const match = text.match(/\[.*\]/s);
+            const match = text.match(/\[[\s\S]*\]/);
             if (match) {
                 try {
                     // Try to construct a valid object if full parse fails
@@ -181,14 +181,20 @@ export async function POST(request: Request) {
             }
         }
 
+        // ... (Previous code remains, but I need to inject logic after obtaining jsonResponse)
+
         // Ensure structure
         if (!jsonResponse.items) jsonResponse.items = [];
-        if (!jsonResponse.analystReport) jsonResponse.analystReport = [];
+        // Reset analystReport for our own generation
+        jsonResponse.analystReport = [];
 
+        const businessReport: string[] = [];
+        let totalSavings = 0;
+        let totalLoss = 0;
 
         // --- Post-processing: Market Analysis & Recipe Linking ---
-        // Even with AI, we might want to attach our internal recipe data or market warnings.
-        // The VLM does the extraction, we settle the internal logic here.
+        // Dynamically import server action for market price check
+        const { checkMarketPrice } = await import("@/app/ingredients/actions");
 
         const processedItems = await Promise.all(jsonResponse.items.map(async (item: any) => {
             // [Safety Check 1] Remove digits/special chars from name
@@ -212,6 +218,12 @@ export async function POST(request: Request) {
                 }
             }
 
+            // Calculate Unit Price for comparison (if amount is present)
+            let unitPrice = item.price;
+            if (item.amount && item.amount > 0) {
+                unitPrice = Math.round(item.price / item.amount);
+            }
+
             // 1. Link Recipes
             const relatedRecipes: any[] = [];
             Object.entries(RECIPE_PRESETS).forEach(([recipeName, recipeData]) => {
@@ -232,23 +244,76 @@ export async function POST(request: Request) {
                 }
             });
 
+            // 2. Perform Market Analysis (Comparison)
+            let marketAnalysis = null;
+            try {
+                marketAnalysis = await checkMarketPrice(cleanName, unitPrice, item.unit, item.amount || 1);
+            } catch (e) {
+                console.error("Market Price Check Error for", cleanName, e);
+            }
+
+            // Accumulate Savings/Loss
+            if (marketAnalysis) {
+                // diff > 0 means current price is EXPENSIVE (Loss)
+                // diff < 0 means current price is CHEAPER (Savings)
+                if (marketAnalysis.diff < 0) {
+                    totalSavings += Math.abs(marketAnalysis.diff * (item.amount || 1));
+                } else if (marketAnalysis.diff > 0) {
+                    totalLoss += (marketAnalysis.diff * (item.amount || 1));
+                }
+            }
+
+            // Create specific insight for significant differences
+            if (marketAnalysis && Math.abs(marketAnalysis.diff) > 1000) {
+                const diff = marketAnalysis.diff;
+                if (diff > 0) {
+                    businessReport.push(`📉 ${cleanName}: 평소보다 ${diff.toLocaleString()}원 비싸게 구매하셨어요. 다음엔 ${marketAnalysis.cheapestSource} 확인해보세요!`);
+                } else {
+                    businessReport.push(`🎉 ${cleanName}: ${Math.abs(diff).toLocaleString()}원이나 저렴하게 득템하셨네요! (시장가 대비)`);
+                }
+            }
+
+
             return {
                 ...item,
                 name: cleanName,
                 relatedRecipes,
-                marketAnalysis: null // Skipping real market analysis for now to speed up
+                marketAnalysis // Attach the real analysis
             };
         }));
 
+        // Finalize Business Report
+        const netSavings = totalSavings - totalLoss;
+        const monthlyProjection = netSavings * 4; // Assuming weekly shopping
+
+        const finalReport = [];
+
+        // Title
+        if (netSavings > 0) {
+            finalReport.push(`💰 사장님! 이번 장보기로 ${netSavings.toLocaleString()}원을 아끼셨네요!`);
+            finalReport.push(`한 달이면 약 ${monthlyProjection.toLocaleString()}원을 절약하실 수 있어요.`);
+        } else if (netSavings < 0) {
+            finalReport.push(`💡 사장님! 이번엔 평소보다 ${Math.abs(netSavings).toLocaleString()}원 더 지출하셨어요.`);
+            finalReport.push(`앱에서 최저가를 확인하고 구매하시면 한 달에 약 ${Math.abs(monthlyProjection).toLocaleString()}원을 아낄 수 있어요!`);
+        } else {
+            finalReport.push(`✅ 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
+        }
+
+        // Add specific insights
+        finalReport.push(...businessReport);
+
+        // Add footer
+        finalReport.push(`(기준: 네이버 및 도매시장 평균 단가 비교)`);
+
         return NextResponse.json({
             items: processedItems,
-            analystReport: jsonResponse.analystReport,
+            analystReport: finalReport,
             rawText: `Google Gemini (${usedModel})`, // Return used model name
             analystMode: true
         });
 
     } catch (error: any) {
-        console.error("🚨 Gemini OCR Error:", error);
+        // ... (error handling)        console.error("🚨 Gemini OCR Error:", error);
         let errorMessage = error.message || "이미지 인식 실패";
         if (errorMessage.includes("API_KEY")) {
             errorMessage = "구글 API 키가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.";
