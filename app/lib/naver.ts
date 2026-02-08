@@ -1,6 +1,5 @@
 
-
-export const fetchNaverPrice = async (queryName: string): Promise<{ price: number, source: string, link?: string } | null> => {
+export const fetchNaverPrice = async (queryName: string): Promise<{ price: number, source: string, link: string }[] | null> => {
     const naverClientId = process.env.NAVER_CLIENT_ID;
     const naverClientSecret = process.env.NAVER_CLIENT_SECRET;
 
@@ -100,7 +99,7 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
         // If generic query "Mu" returns 100 relevant items, we sort them by PRICE ASCENDING to find the cheapest relevant one.
         if (validItems.length > 0) {
             validItems.sort((a, b) => a.price - b.price);
-            return validItems[0]; // Return the cheapest valid item
+            return validItems.slice(0, 20); // Return top 20 candidates for user selection
         }
 
     } catch (error) {
@@ -142,12 +141,12 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     }
     searchQueries.push(name); // Fallback
 
-    let marketData = null;
+    let marketDataList: { price: number, source: string, link: string }[] | null = null;
     let matchType: 'specific' | 'fallback' = 'fallback';
 
     for (const query of searchQueries) {
-        marketData = await fetchNaverPrice(query);
-        if (marketData) {
+        marketDataList = await fetchNaverPrice(query);
+        if (marketDataList && marketDataList.length > 0) {
             // Check if this was a specific query match
             // query matches specifically if it matches the first query in list (amount included scenario)
             if (amount > 0 && query === searchQueries[0] && searchQueries.length > 1) {
@@ -157,9 +156,11 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         }
     }
 
-    if (!marketData) return null;
+    if (!marketDataList || marketDataList.length === 0) return null;
 
-    const marketPrice = marketData.price;
+    // Use the best match (cheapest) for main analysis
+    const bestMatch = marketDataList[0];
+    const marketPrice = bestMatch.price;
     let diff = 0;
 
     // Check query strategy result
@@ -185,12 +186,13 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     else status = "GOOD"; // Similar
 
     return {
-        cheapestSource: marketData.source,
+        cheapestSource: bestMatch.source,
         price: marketPrice,
         status: status,
         diff: diff,
-        link: marketData.link,
-        cheapestLink: marketData.link,
-        marketDataRaw: marketData
+        link: bestMatch.link,
+        cheapestLink: bestMatch.link,
+        marketDataRaw: bestMatch,
+        candidates: marketDataList // [New Feature] Return all candidates for user selection
     };
 };

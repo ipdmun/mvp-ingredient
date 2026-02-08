@@ -42,6 +42,9 @@ export default function IngredientList({ initialIngredients }: Props) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Feature: Candidate Selection (Up/Down)
+    const [selectedCandidates, setSelectedCandidates] = useState<Record<number, number>>({});
+
     const getPriceAnalysis = (name: string, prices: Price[]) => {
         const latestPriceObj = prices[0];
         const latest = latestPriceObj?.price || 0;
@@ -366,47 +369,89 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                     <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
                                                 </div>
                                             )}
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="flex h-5 w-5 items-center justify-center rounded bg-[#03C75A] text-[10px] font-black text-white">N</span>
-                                                    <span className="text-xs font-bold text-gray-700">네이버 최저가</span>
-                                                </div>
-                                                <span className={`text-xs font-black px-2 py-1 rounded-md shadow-sm ${marketData.diff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                                    {marketData.diff > 0 ? `+${marketData.diff.toLocaleString()}` : `${marketData.diff.toLocaleString()}`}
-                                                </span>
-                                            </div>
 
-                                            <div className="flex items-baseline justify-between">
-                                                {marketData ? (
-                                                    <a
-                                                        href={(() => {
-                                                            // Trust the API link if it exists and isn't empty.
-                                                            if (marketData.link && marketData.link.length > 0) {
-                                                                return marketData.link;
-                                                            }
+                                            {/* Logic to determine current candidate */}
+                                            {(() => {
+                                                const candidates = marketData.candidates || [marketData];
+                                                const selectedIndex = selectedCandidates[item.id] || 0;
+                                                const currentCandidate = candidates[selectedIndex] || candidates[0];
 
-                                                            // Fallback: Smart Search Link
-                                                            const itemAmount = latestPrice?.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : "";
-                                                            const query = `${item.name} ${itemAmount}`.trim();
+                                                // Re-calculate Diff for display
+                                                // Original Diff = UserPrice - BestPrice
+                                                // UserPrice = BestPrice + OriginalDiff
+                                                const userTotalEstimated = marketData.price + marketData.diff;
+                                                const currentDiff = userTotalEstimated - currentCandidate.price;
 
-                                                            return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(query)}`;
-                                                        })()}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="text-xs text-blue-500 underline truncate max-w-[60%] hover:text-blue-700 transition-colors"
-                                                    >
-                                                        {marketData.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
-                                                    </a>
-                                                ) : (
-                                                    <p className="text-xs text-gray-400 truncate max-w-[60%] group-hover/badge:text-gray-600 transition-colors">
-                                                        -
-                                                    </p>
-                                                )}
-                                                <p className="text-lg font-black text-gray-900">
-                                                    {marketData.price.toLocaleString()}원
-                                                </p>
-                                            </div>
+                                                const handlePrev = (e: React.MouseEvent) => {
+                                                    e.stopPropagation();
+                                                    setSelectedCandidates(prev => ({
+                                                        ...prev,
+                                                        [item.id]: Math.max(0, (prev[item.id] || 0) - 1)
+                                                    }));
+                                                };
+
+                                                const handleNext = (e: React.MouseEvent) => {
+                                                    e.stopPropagation();
+                                                    setSelectedCandidates(prev => ({
+                                                        ...prev,
+                                                        [item.id]: Math.min(candidates.length - 1, (prev[item.id] || 0) + 1)
+                                                    }));
+                                                };
+
+                                                return (
+                                                    <>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="flex h-5 w-5 items-center justify-center rounded bg-[#03C75A] text-[10px] font-black text-white">N</span>
+                                                                <span className="text-xs font-bold text-gray-700">네이버 최저가</span>
+
+                                                                {/* Up/Down Buttons */}
+                                                                {candidates.length > 1 && (
+                                                                    <div className="flex flex-col ml-1">
+                                                                        <button
+                                                                            onClick={handlePrev}
+                                                                            disabled={selectedIndex === 0}
+                                                                            className="p-0.5 hover:bg-blue-200 rounded disabled:opacity-30"
+                                                                        >
+                                                                            <ArrowRight className="h-2 w-2 -rotate-90" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={handleNext}
+                                                                            disabled={selectedIndex === candidates.length - 1}
+                                                                            className="p-0.5 hover:bg-blue-200 rounded disabled:opacity-30"
+                                                                        >
+                                                                            <ArrowRight className="h-2 w-2 rotate-90" />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                                {candidates.length > 1 && (
+                                                                    <span className="text-[9px] text-gray-400 ml-0.5">
+                                                                        {selectedIndex + 1}/{candidates.length}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className={`text-xs font-black px-2 py-1 rounded-md shadow-sm ${currentDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                                {currentDiff > 0 ? `+${currentDiff.toLocaleString()}` : `${currentDiff.toLocaleString()}`}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="flex items-baseline justify-between">
+                                                            <a
+                                                                href={currentCandidate.link}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="text-xs text-blue-500 underline truncate max-w-[60%] hover:text-blue-700 transition-colors"
+                                                            >
+                                                                {currentCandidate.source.replace("네이버최저가(", "").replace(")", "")}
+                                                            </a>
+                                                            <p className="text-lg font-black text-gray-900">
+                                                                {currentCandidate.price.toLocaleString()}원
+                                                            </p>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     ) : (
                                         <div
