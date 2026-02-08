@@ -135,7 +135,9 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     // But expanding queries logic uses original name.
 
     // If unit is standard weight/volume, prioritize specific search
-    if (amount > 0 && (unit === 'kg' || unit === 'g' || unit === 'L' || unit === 'ml')) {
+    // Expanded units to include common market units (Bundle, Net, Box, EA, Head, Tofu count)
+    const validUnits = ['kg', 'g', 'L', 'ml', '단', '망', '박스', '개', '포기', '모', '봉'];
+    if (amount > 0 && validUnits.includes(unit)) {
         searchQueries.push(`${name} ${amount}${unit}`);
     }
     searchQueries.push(name); // Fallback
