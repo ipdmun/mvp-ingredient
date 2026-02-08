@@ -7,8 +7,14 @@ interface SheetIngredient {
     unit: string; // Default 'g'
 }
 
-// In-memory cache
-let recipeCache: Record<string, SheetIngredient[]> | null = null;
+interface SheetRecipe {
+    id: string;
+    name: string;
+    ingredients: SheetIngredient[];
+}
+
+// In-memory cache: ID -> Recipe
+let recipeCache: Record<string, SheetRecipe> | null = null;
 let lastFetchTime = 0;
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
@@ -50,7 +56,7 @@ function parseCSV(text: string): string[][] {
     return rows;
 }
 
-export async function fetchSheetData(): Promise<Record<string, SheetIngredient[]>> {
+export async function fetchSheetData(): Promise<Record<string, SheetRecipe>> {
     const now = Date.now();
     if (recipeCache && (now - lastFetchTime < CACHE_TTL)) {
         return recipeCache;
@@ -58,89 +64,88 @@ export async function fetchSheetData(): Promise<Record<string, SheetIngredient[]
 
     console.log("[SheetService] Fetching CSV...");
     try {
-        const response = await fetch(CSV_URL, { next: { revalidate: 3600 } }); // Next.js caching
+        const response = await fetch(CSV_URL, { next: { revalidate: 3600 } });
         if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
-
-        // Handle redirects if fetch doesn't automatically (native fetch usually does)
-        // If Google Sheets returns 307, fetch follows automatically.
 
         const csvText = await response.text();
         const rows = parseCSV(csvText);
 
-        const recipes: Record<string, SheetIngredient[]> = {};
+        const recipes: Record<string, SheetRecipe> = {};
 
-        // Indexes based on observation:
+        // Col 0: Dish ID
         // Col 1: Dish Name
         // Col 3: Ingredient Name
         // Col 5: Amount
 
         for (const row of rows) {
-            if (row.length < 6) continue; // Skip malformed
+            if (row.length < 6) continue;
 
+            const dishId = row[0];
             const dishName = row[1];
             const ingName = row[3];
             const amountStr = row[5];
 
-            if (!dishName || !ingName || !amountStr) continue;
-            if (dishName === 'Dish Name' || dishName === 'MENU_NM') continue; // Skip header if strictly text
+            if (!dishId || !dishName || !ingName || !amountStr) continue;
+            if (dishId === 'Dish Name' || dishName === 'MENU_NM') continue;
 
-            // Cleanup quotes if parser didn't
+            const cleanId = dishId.trim();
             const cleanDish = dishName.replace(/^"|"$/g, '').trim();
             const cleanIng = ingName.replace(/^"|"$/g, '').trim();
             const amount = parseFloat(amountStr);
 
             if (isNaN(amount) || amount <= 0) continue;
 
-            if (!recipes[cleanDish]) {
-                recipes[cleanDish] = [];
+            if (!recipes[cleanId]) {
+                recipes[cleanId] = {
+                    id: cleanId,
+                    name: cleanDish,
+                    ingredients: []
+                };
             }
 
-            recipes[cleanDish].push({
+            // Sync name if changed (sometimes same ID has varying names? Unlikely, but use latest)
+            // recipes[cleanId].name = cleanDish; 
+
+            recipes[cleanId].ingredients.push({
                 name: cleanIng,
                 amount: amount,
-                unit: 'g' // Default unit for this sheet
+                unit: 'g'
             });
         }
 
-        console.log(`[SheetService] Parsed ${Object.keys(recipes).length} recipes.`);
+        console.log(`[SheetService] Parsed ${Object.keys(recipes).length} unique recipes (by ID).`);
         recipeCache = recipes;
         lastFetchTime = now;
         return recipes;
     } catch (error) {
         console.error("[SheetService] Error:", error);
-        return recipeCache || {}; // Fallback to cache or empty
+        return recipeCache || {};
     }
 }
 
 export async function findRecipeInSheet(queryName: string): Promise<{ name: string, ingredients: SheetIngredient[] } | null> {
-    const recipes = await fetchSheetData();
+    const recipesMap = await fetchSheetData();
+    const recipes = Object.values(recipesMap);
     const query = queryName.replace(/\s+/g, "").toLowerCase();
 
-    // 1. Exact Match
-    if (recipes[queryName]) return { name: queryName, ingredients: recipes[queryName] };
+    // Strategy:
+    // 1. Find all recipes matching the name (Exact or Fuzzy).
+    // 2. Sort candidates by ingredient count (Descending).
+    // 3. Return the one with most ingredients.
 
-    // 2. Fuzzy Match
-    const recipeNames = Object.keys(recipes);
-    // Find shortest name that contains query or is contained by query
-    // Prefer "exact word" match if possible?
-    // Given "회냉면", match "회냉면(홍어)"? Yes. Must contain.
-
-    // Check if query is contained in key (e.g. query "Bibimbap" in "Jeonju Bibimbap")
-    let bestMatch = recipeNames.find(k => {
-        const kClean = k.replace(/\s+/g, "").toLowerCase();
-        return kClean === query;
+    // Filter candidates
+    const candidates = recipes.filter(r => {
+        const rName = r.name.replace(/\s+/g, "").toLowerCase();
+        return rName === query || rName.includes(query) || query.includes(rName);
     });
 
-    if (!bestMatch) {
-        bestMatch = recipeNames.find(k => {
-            const kClean = k.replace(/\s+/g, "").toLowerCase();
-            return kClean.includes(query) || query.includes(kClean);
-        });
-    }
+    if (candidates.length === 0) return null;
 
-    if (bestMatch) {
-        return { name: bestMatch, ingredients: recipes[bestMatch] };
-    }
+    // Sort by ingredient count desc
+    candidates.sort((a, b) => b.ingredients.length - a.ingredients.length);
 
-    return null;
+    const best = candidates[0];
+    console.log(`[SheetService] Query "${queryName}" matched ${candidates.length} recipes. Selected "${best.name}" (ID: ${best.id}) with ${best.ingredients.length} ingredients.`);
+
+    return { name: best.name, ingredients: best.ingredients };
 }
