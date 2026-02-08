@@ -230,7 +230,7 @@ function PriceRow({ price, isLowest, isEditing, onEdit, onCancel, onSaveSuccess,
             </td>
             <td className="px-6 py-4 text-blue-600 font-bold">
                 {/* Display Price converted to Ingredient Unit */}
-                {displayUnitPrice.toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{ingredientUnit.toLowerCase()}</span>
+                {Math.round(displayUnitPrice).toLocaleString()}원 <span className="text-xs font-normal text-gray-400">/{ingredientUnit.toLowerCase()}</span>
             </td>
             <td className="px-6 py-4 text-right text-gray-400 text-xs">
                 {new Date(price.recordedAt).toLocaleDateString()}

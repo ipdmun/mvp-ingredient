@@ -53,11 +53,11 @@ export default function IngredientList({ initialIngredients }: Props) {
         const monthPrices = prices.filter(p => new Date(p.recordedAt) >= monthAgo);
 
         const weekAvg = weekPrices.length > 0
-            ? Math.round(weekPrices.reduce((acc, p) => acc + p.price, 0) / weekPrices.length)
+            ? weekPrices.reduce((acc, p) => acc + p.price, 0) / weekPrices.length
             : 0;
 
         const monthAvg = monthPrices.length > 0
-            ? Math.round(monthPrices.reduce((acc, p) => acc + p.price, 0) / monthPrices.length)
+            ? monthPrices.reduce((acc, p) => acc + p.price, 0) / monthPrices.length
             : 0;
 
         // Use stored marketData if available
@@ -284,12 +284,12 @@ export default function IngredientList({ initialIngredients }: Props) {
                                     <div className="text-right shrink-0">
                                         <div className="flex flex-col items-end">
                                             <p className="text-xl font-black text-gray-900">
-                                                {latest > 0 ? `${convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', item.unit).toLocaleString()}원` : "기록 없음"}
+                                                {latest > 0 ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', item.unit)).toLocaleString()}원` : "기록 없음"}
                                             </p>
                                             <div className="mt-1 flex gap-1">
                                                 {previous && (
                                                     <span className="text-[9px] font-medium text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded line-through decoration-gray-300">
-                                                        {previous.toLocaleString()}원
+                                                        {Math.round(previous).toLocaleString()}원
                                                     </span>
                                                 )}
                                             </div>
@@ -354,7 +354,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             <div>
                                                 <p className="text-[10px] font-bold text-gray-400">7일 평균</p>
                                                 <p className="text-lg font-black text-gray-700">
-                                                    {weekAvg > 0 ? `${convertPriceForDisplay(weekAvg, item.prices[0]?.unit || 'g', item.unit).toLocaleString()}원` : "-"}
+                                                    {weekAvg > 0 ? `${Math.round(convertPriceForDisplay(weekAvg, item.prices[0]?.unit || 'g', item.unit)).toLocaleString()}원` : "-"}
                                                 </p>
                                             </div>
                                             <span className="text-[10px] font-medium text-gray-400 group-hover:text-blue-500">

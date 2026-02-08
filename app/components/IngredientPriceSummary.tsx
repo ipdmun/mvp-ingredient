@@ -107,7 +107,7 @@ export default function IngredientPriceSummary({ prices, unit, lowestPrice }: Pr
                         <p className="text-sm font-medium text-gray-500 mb-1">평균 구매가 ({period === 'all' ? '전체' : period === '7d' ? '최근 7일' : '최근 1달'})</p>
                         <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black text-gray-900 tracking-tight">
-                                {averagePrice.toLocaleString()}
+                                {Math.round(averagePrice).toLocaleString()}
                             </span>
                             <span className="text-lg font-bold text-gray-400">원 /{unit}</span>
                         </div>
