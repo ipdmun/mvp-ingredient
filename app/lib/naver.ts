@@ -25,8 +25,11 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
 
     try {
         const query = encodeURIComponent(queryName);
-        // display: 40 (Increased to allow better filtering), sort: 'asc' (lowest price)
-        const apiRes = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${query}&display=40&start=1&sort=asc`, {
+        // [Key Improvement]: Use sort='sim' (Relevance/Accuracy) instead of 'asc' (Lowest Price)
+        // 'asc' often returns irrelevant cheap items (hooks, scales) for generic queries like "Mu".
+        // 'sim' returns relevant items first (like "Radish").
+        // We fetch 100 items (max) to increase the chance of finding cheap ones among relevant ones.
+        const apiRes = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${query}&display=100&start=1&sort=sim`, {
             headers: {
                 "X-Naver-Client-Id": naverClientId,
                 "X-Naver-Client-Secret": naverClientSecret
@@ -37,9 +40,10 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
         if (!apiRes.ok) return null;
 
         const data = await apiRes.json();
+        const validItems: { price: number, source: string, link: string }[] = [];
 
         if (data.items && data.items.length > 0) {
-            // Filter Loop
+            // Filter Loop (Collect ALL valid items)
             for (const item of data.items) {
                 const title = item.title.toLowerCase();
                 // Naver returns category1, category2, category3, category4
@@ -56,7 +60,7 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 // MUST contain food-related keywords in the category path.
                 // Strict check: If it contains "주방용품", "가전", "생활", it's risky unless "식품" is explicitly there.
 
-                // [Strict Category Filter] 
+                // [Strict Category Filter]
                 // Only allow items where the Primary Category (category1) is clearly "Food" or related.
                 // This eliminates "Living/Health" > "Kitchen" (Onion Bag), "Stationery" (Fancy), "Toys" (Wood)
                 const validCategory1 = ["식품", "출산/육아", "농산물", "축산물", "수산물"];
@@ -67,7 +71,6 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 }
 
                 // [Negative Filter] Explicitly exclude non-food categories even if they contain "식품" (e.g. "식품보관용기")
-                // Added: "문구", "완구", "교구", "서적", "출산", "육아", "취미", "반려동물"
                 const EXCLUDED_CATEGORIES = ["주방용품", "수납", "정리", "원예", "자재", "비료", "농기구", "식기", "그릇", "냄비", "조리도구", "포장", "용기", "잡화", "문구", "완구", "교구", "서적", "출산", "육아", "취미", "반려동물", "공구", "산업"];
                 if (EXCLUDED_CATEGORIES.some(badCat => categories.includes(badCat))) {
                     continue;
@@ -85,13 +88,21 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                     continue;
                 }
 
-                return {
+                // Valid Item Found! Add to list.
+                validItems.push({
                     price: price,
                     source: `네이버최저가(${item.mallName || '쇼핑몰'})`,
                     link: item.link
-                };
+                });
             }
         }
+
+        // If generic query "Mu" returns 100 relevant items, we sort them by PRICE ASCENDING to find the cheapest relevant one.
+        if (validItems.length > 0) {
+            validItems.sort((a, b) => a.price - b.price);
+            return validItems[0]; // Return the cheapest valid item
+        }
+
     } catch (error) {
         console.error("Naver API Fetch Error:", error);
     }
