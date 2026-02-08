@@ -154,7 +154,7 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
                             e.stopPropagation();
                             fileInputRef.current?.click();
                         }}
-                        className="absolute top-3 left-3 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer transition-opacity opacity-0 group-hover/image:opacity-100 z-20 backdrop-blur-sm"
+                        className="absolute top-3 left-3 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer transition-opacity opacity-100 md:opacity-0 md:group-hover/image:opacity-100 z-20 backdrop-blur-sm"
                         title="이미지 변경"
                     >
                         <Camera className="h-4 w-4" />
