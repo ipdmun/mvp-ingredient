@@ -11,6 +11,8 @@ type Price = {
     price: number;
     recordedAt: Date;
     source: string;
+    totalPrice?: number;
+    amount?: number;
     marketData?: any; // JSON
     unit: string;
 };
@@ -230,6 +232,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                 {filteredAndSortedIngredients.map((item) => {
                     const { latest, previous, weekAvg, monthAvg, marketData } = getPriceAnalysis(item.name, item.prices);
                     const isSelected = selectedIds.includes(item.id);
+                    const latestPrice = item.prices[0];
 
                     return (
                         <div
@@ -284,15 +287,27 @@ export default function IngredientList({ initialIngredients }: Props) {
                                     <div className="text-right shrink-0">
                                         <div className="flex flex-col items-end">
                                             <p className="text-xl font-black text-gray-900">
-                                                {latest > 0 ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', item.unit)).toLocaleString()}원` : "기록 없음"}
+                                                {latest > 0
+                                                    ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', item.unit)).toLocaleString()}원/${item.unit}`
+                                                    : "기록 없음"
+                                                }
                                             </p>
-                                            <div className="mt-1 flex gap-1">
-                                                {previous && (
-                                                    <span className="text-[9px] font-medium text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded line-through decoration-gray-300">
-                                                        {Math.round(previous).toLocaleString()}원
-                                                    </span>
-                                                )}
-                                            </div>
+
+                                            {/* Recent History Detail */}
+                                            {latestPrice && (
+                                                <div className="mt-1 flex flex-col items-end gap-0.5">
+                                                    <p className="text-[10px] text-gray-400 font-medium">
+                                                        {new Date(latestPrice.recordedAt).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' })}
+                                                        {' '}
+                                                        {latestPrice.amount ? `${latestPrice.amount}${latestPrice.unit}` : ''}
+                                                        {' '}
+                                                        {latestPrice.totalPrice ? `${latestPrice.totalPrice.toLocaleString()}원` : ''}
+                                                    </p>
+                                                    <p className="text-[9px] text-gray-300">
+                                                        ({Math.round(latestPrice.price).toLocaleString()}원/{latestPrice.unit})
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -325,7 +340,10 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                     <a
                                                         href={(() => {
                                                             const sourceName = marketData.cheapestSource || "";
-                                                            const query = item.name;
+                                                            // Construct query with amount if available from latest history
+                                                            const amountQuery = latestPrice?.amount ? `${latestPrice.amount}${latestPrice.unit}` : "";
+                                                            // Priority: User's latest amount -> Just name
+                                                            const query = `${item.name} ${amountQuery}`.trim();
 
                                                             if (sourceName.includes("쿠팡")) return `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(query)}&channel=user`;
                                                             if (sourceName.includes("마켓컬리") || sourceName.includes("컬리")) return `https://www.kurly.com/search?keyword=${encodeURIComponent(query)}`;
