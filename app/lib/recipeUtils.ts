@@ -142,26 +142,66 @@ export function convertIngredientAmount(
  * Helper to convert decimal amount to friendly fraction string if applicable.
  */
 function toFractionString(val: number): string | number {
-    // Tolerance for float comparison
-    const eps = 0.05;
+    const eps = 0.03; // Stricter tolerance (3%) to avoid false positives on mid-points
 
-    // Integers
+    if (val <= 0) return 0;
+
+    // 1. Exact Integers
     if (Math.abs(val - Math.round(val)) < eps) return Math.round(val);
 
-    // Common Fractions
-    if (Math.abs(val - 0.5) < eps) return "1/2";
-    if (Math.abs(val - 0.25) < eps) return "1/4";
-    if (Math.abs(val - 0.75) < eps) return "3/4";
-    if (Math.abs(val - 0.33) < eps) return "1/3";
-    if (Math.abs(val - 0.66) < eps) return "2/3";
-    if (Math.abs(val - 0.2) < eps) return "1/5";
-    if (Math.abs(val - 0.125) < eps) return "1/8";
+    // 2. Common Cooking Fractions
+    const fractions = [
+        { n: 2, v: 1 / 2 },
+        { n: 3, v: 1 / 3 }, { n: 3, v: 2 / 3 },
+        { n: 4, v: 1 / 4 }, { n: 4, v: 3 / 4 },
+        { n: 5, v: 1 / 5 }, { n: 5, v: 2 / 5 }, { n: 5, v: 3 / 5 }, { n: 5, v: 4 / 5 },
+        { n: 8, v: 1 / 8 }, { n: 8, v: 3 / 8 }, { n: 8, v: 5 / 8 }, { n: 8, v: 7 / 8 },
+        { n: 10, v: 1 / 10 }, // 0.1
+        { n: 15, v: 1 / 15 }, // ~0.067 (1g/15g)
+        { n: 2, v: 1.5 },   // 1.5 is common
+    ];
 
-    // Spoons specific (1.5, 2.5 handled by int check? No)
-    if (Math.abs(val - 1.5) < eps) return "1.5"; // Or 1 1/2? User asked for 1/n if < 1. For > 1 decimals are usually ok or "1과 1/2" which is complex.
-    // Let's stick to decimals for > 1 unless it's a hole number.
+    for (const f of fractions) {
+        // v for value, n for denominator (just for comment, we use v to compare)
+        if (Math.abs(val - f.v) < eps) {
+            // Special case for improper fractions if needed, but here we just return string
+            if (f.v === 1.5) return 1.5; // Keep 1.5 as decimal? Or "1 1/2"? User asked for < 1 handling.
+            // Construct string
+            // Find numerator? We hardcoded value.
+            // Let's store string in array.
+            return f.v >= 1 ? Number(f.v.toFixed(1)) : formatFraction(f.v);
+        }
+    }
 
-    // Default rounding logic
+    // Helper to format known values
+    function formatFraction(v: number): string {
+        if (Math.abs(v - 1 / 2) < eps) return "1/2";
+        if (Math.abs(v - 1 / 3) < eps) return "1/3";
+        if (Math.abs(v - 2 / 3) < eps) return "2/3";
+        if (Math.abs(v - 1 / 4) < eps) return "1/4";
+        if (Math.abs(v - 3 / 4) < eps) return "3/4";
+        if (Math.abs(v - 1 / 5) < eps) return "1/5";
+        if (Math.abs(v - 2 / 5) < eps) return "2/5";
+        if (Math.abs(v - 3 / 5) < eps) return "3/5";
+        if (Math.abs(v - 4 / 5) < eps) return "4/5";
+        if (Math.abs(v - 1 / 8) < eps) return "1/8";
+        if (Math.abs(v - 3 / 8) < eps) return "3/8";
+        if (Math.abs(v - 5 / 8) < eps) return "5/8";
+        if (Math.abs(v - 7 / 8) < eps) return "7/8";
+        if (Math.abs(v - 1 / 10) < eps) return "1/10";
+        if (Math.abs(v - 1 / 15) < eps) return "1/15";
+        return String(v);
+    }
+
+    // 3. Generic 1/n Fallback for small numbers < 0.5
+    if (val < 0.5) {
+        const n = Math.round(1 / val);
+        if (n <= 30 && Math.abs(val - (1 / n)) < 0.01) { // Higher precision check for 1/n match
+            return `1/${n}`;
+        }
+    }
+
+    // Default
     if (val > 1) return Number(val.toFixed(1));
     return Number(val.toFixed(2));
 }

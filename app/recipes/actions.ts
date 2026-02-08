@@ -51,6 +51,7 @@ async function getSafeUserId() {
 // --- Presets ---
 
 import { RECIPE_PRESETS } from "@/app/lib/constants";
+import { findRecipeInSheet } from "@/app/lib/sheetService";
 
 // --- Actions ---
 
@@ -68,23 +69,25 @@ export async function createRecipe(data: {
 
     try {
         const recipeName = data.name.trim();
-        const recipeNameClean = recipeName.replace(/\s+/g, ""); // 공백 제거 비교용
 
-        // Find preset with looser matching
-        const sortedKeys = Object.keys(RECIPE_PRESETS).sort((a, b) => b.length - a.length);
-        const matchedKey = sortedKeys.find(k => {
-            const kClean = k.replace(/\s+/g, "");
-            return recipeNameClean.includes(kClean) || kClean.includes(recipeNameClean);
-        });
-        const preset = matchedKey ? RECIPE_PRESETS[matchedKey] : null;
+        // [SHEET INTEGRATION] Use Sheet Service instead of RECIPE_PRESETS
+        let presetIngredients: any[] = [];
+        let presetName = "";
+
+        const sheetMatch = await findRecipeInSheet(recipeName);
+        if (sheetMatch) {
+            console.log(`[CreateRecipe] Found in Sheet: ${sheetMatch.name}`);
+            presetName = sheetMatch.name;
+            presetIngredients = sheetMatch.ingredients;
+        }
 
         const recipe = await prisma.recipe.create({
             data: {
                 userId,
                 name: recipeName,
-                description: data.description || "",
-                imageUrl: data.imageUrl || preset?.imageUrl || null,
-                illustrationPrompt: data.illustrationPrompt || preset?.illustrationPrompt || null, // Save prompt
+                description: data.description || (presetName ? `Based on ${presetName}` : ""),
+                imageUrl: data.imageUrl || null, // Sheet doesn't have images yet
+                illustrationPrompt: data.illustrationPrompt || null,
                 servings: data.servings ?? 1,
                 sellingPrice: data.sellingPrice || 0,
             }
@@ -92,10 +95,16 @@ export async function createRecipe(data: {
 
         console.log(`[CreateRecipe] Recipe created ID: ${recipe.id}`);
 
-        if (preset) {
-            console.log(`[CreateRecipe] Applied preset: ${matchedKey}`);
-            for (const item of preset.ingredients) {
+        if (presetIngredients.length > 0) {
+            console.log(`[CreateRecipe] Applying ${presetIngredients.length} ingredients from Sheet`);
+            for (const item of presetIngredients) {
                 try {
+                    // Clean name (remove descriptions in parenthesis if needed, or keep raw)
+                    // User said: "return ONLY ingredient name". Sheet has "홍어, 생것".
+                    // We'll keep it as is or maybe split? "홍어" if "홍어, 생것"?
+                    // Sheet logic matches: "홍어, 생것" -> Ingredient Name.
+                    // Let's use the full text for uniqueness.
+
                     let ingredient = await prisma.ingredient.findFirst({ where: { name: item.name, userId } });
                     if (!ingredient) {
                         ingredient = await prisma.ingredient.create({
@@ -113,7 +122,7 @@ export async function createRecipe(data: {
                             amount: finalAmount * (recipe.servings || 1)
                         }
                     });
-                } catch (pe) { console.error(`[CreateRecipe] Preset insert error: ${item.name}`, pe); }
+                } catch (pe) { console.error(`[CreateRecipe] Sheet item insert error: ${item.name}`, pe); }
             }
         }
 
@@ -309,28 +318,19 @@ export async function applyPresetToRecipe(recipeId: number) {
         const recipe = await prisma.recipe.findFirst({ where: { id: recipeId, userId } });
         if (!recipe) return { success: false, error: "레시피 접근 불가" };
 
-        const recipeNameClean = recipe.name.replace(/\s+/g, "");
-        const sortedKeys = Object.keys(RECIPE_PRESETS).sort((a, b) => b.length - a.length);
-        const matchedKey = sortedKeys.find(k => {
-            const kClean = k.replace(/\s+/g, "");
-            return recipeNameClean.includes(kClean) || kClean.includes(recipeNameClean);
-        });
-        const preset = matchedKey ? RECIPE_PRESETS[matchedKey] : null;
+        // [SHEET INTEGRATION]
+        const sheetMatch = await findRecipeInSheet(recipe.name);
 
-        if (!preset) return { success: false, message: "일치하는 추천 레시피가 없습니다." };
+        if (!sheetMatch) return { success: false, message: "일치하는 추천 레시피가 없습니다." };
 
-        // [Auto-Fill Image] If recipe has no image, use the preset's image
-        if (!recipe.imageUrl && preset.imageUrl) {
-            console.log(`[ApplyPreset] Updating image for recipe ${recipeId}`);
-            await prisma.recipe.update({
-                where: { id: recipeId },
-                data: { imageUrl: preset.imageUrl }
-            });
-        }
+        console.log(`[ApplyPreset] Found in Sheet: ${sheetMatch.name} with ${sheetMatch.ingredients.length} items`);
+
+        // Disable Auto-Fill Image from preset since Sheet doesn't have it (yet)
+        // if (!recipe.imageUrl && preset.imageUrl) ... 
 
         const createOps = [];
 
-        for (const item of preset.ingredients) {
+        for (const item of sheetMatch.ingredients) {
             try {
                 let ingredient = await prisma.ingredient.findFirst({ where: { name: item.name, userId } });
                 if (!ingredient) {
@@ -352,7 +352,7 @@ export async function applyPresetToRecipe(recipeId: number) {
                     continue;
                 }
 
-                // [UNIT CONVERSION] - Using shared strict logic
+                // [UNIT CONVERSION]
                 const finalAmount = convertIngredientAmount(item.name, item.amount, item.unit, ingredient.unit);
 
                 createOps.push(
@@ -366,7 +366,7 @@ export async function applyPresetToRecipe(recipeId: number) {
                 );
             } catch (innerErr) {
                 console.error(`[ApplyPreset] Failed to prepare item ${item.name}`, innerErr);
-                // Continue with other items even if one fails
+                // Continue
             }
         }
 
