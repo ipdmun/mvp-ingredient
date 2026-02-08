@@ -7,7 +7,7 @@ import AddRecipeIngredientModal from "@/app/components/AddRecipeIngredientModal"
 import RecipeMarginAnalysis from "@/app/components/RecipeMarginAnalysis";
 import { deleteRecipe, deleteRecipeIngredient, updateRecipeIngredientAmount, applyPresetToRecipe, updateRecipe, deleteRecipeIngredients } from "@/app/recipes/actions";
 import { useRouter } from "next/navigation";
-import { sanitizeAmountInput } from "@/app/lib/recipeUtils";
+import { sanitizeAmountInput, formatRecipeDisplay } from "@/app/lib/recipeUtils";
 
 interface RecipeDetailClientProps {
     recipe: any;
@@ -448,10 +448,13 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                                 }}
                                                 className="font-black text-gray-900 hover:text-blue-600 hover:underline transition-all decoration-dotted flex items-center gap-1 disabled:pointer-events-none justify-end w-full"
                                             >
+                                                {/* SMART DISPLAY LOGIC */}
                                                 <span className={item.amount === 0 ? "text-gray-300" : ""}>
-                                                    {item.amount === 0 ? "0" : item.amount}
+                                                    {(() => {
+                                                        const formatted = formatRecipeDisplay(item.ingredient.name, item.amount, item.ingredient.unit);
+                                                        return `${formatted.amount} ${formatted.unit}`;
+                                                    })()}
                                                 </span>
-                                                <span className="text-gray-900">{item.ingredient.unit.toLowerCase()}</span>
                                             </button>
 
                                         )}
