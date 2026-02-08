@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Plus, Trash2, Check, X as CloseIcon, Wand2, Loader2, ChefHat } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, X as CloseIcon, Wand2, Loader2, ChefHat, Camera, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import AddRecipeIngredientModal from "@/app/components/AddRecipeIngredientModal";
 import RecipeMarginAnalysis from "@/app/components/RecipeMarginAnalysis";
-import { deleteRecipe, deleteRecipeIngredient, updateRecipeIngredientAmount, applyPresetToRecipe, updateRecipe, deleteRecipeIngredients } from "@/app/recipes/actions";
+import { deleteRecipe, deleteRecipeIngredient, updateRecipeIngredientAmount, applyPresetToRecipe, updateRecipe, deleteRecipeIngredients, updateRecipeImage, deleteRecipeImage } from "@/app/recipes/actions";
 import { useRouter } from "next/navigation";
 import { sanitizeAmountInput, formatRecipeDisplay } from "@/app/lib/recipeUtils";
 
@@ -211,6 +211,63 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
     }
 
     const [isImageLoading, setIsImageLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
+
+    // [Image Helpers]
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert("이미지 크기는 5MB 이하여야 합니다.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64 = reader.result as string;
+                const res = await updateRecipeImage(recipe.id, base64);
+                if (res.success) {
+                    refreshData();
+                    setIsImageLoading(true);
+                } else {
+                    alert(res.error || "이미지 업로드 실패");
+                }
+                setIsUploading(false);
+            };
+            reader.onerror = () => {
+                alert("파일 읽기 오류");
+                setIsUploading(false);
+            };
+        } catch (error) {
+            console.error(error);
+            setIsUploading(false);
+        }
+    };
+
+    const handleImageRevert = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!confirm("현재 이미지를 삭제하고 기본(AI) 이미지로 되돌리시겠습니까?")) return;
+
+        setIsImageLoading(true);
+        try {
+            const res = await deleteRecipeImage(recipe.id);
+            if (res.success) {
+                refreshData();
+            } else {
+                alert(res.error || "이미지 복원 실패");
+                setIsImageLoading(false);
+            }
+        } catch (error) {
+            console.error(error);
+            setIsImageLoading(false);
+        }
+    };
 
     return (
         <main className="min-h-screen bg-gray-50/50 pb-24">
@@ -250,13 +307,6 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                         </button>
                     )}
                 </div>
-                <button
-                    onClick={handleDeleteRecipe}
-                    disabled={isProcessing}
-                    className="p-2 text-red-400 hover:text-red-500 transition-colors hover:bg-red-50 rounded-full disabled:opacity-50"
-                >
-                    <Trash2 className="h-5 w-5" />
-                </button>
             </div>
 
             {/* AI Generated Image Header (Menu Card Style) */}
@@ -289,6 +339,44 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
 
                 {/* Gray Gradient Overlay (Background Recognition) */}
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent" />
+
+                {/* Overlay Buttons */}
+                <div className="absolute top-4 left-4 flex items-center gap-2 z-20">
+                    {/* Camera Button */}
+                    <div className="relative">
+                        <div className="bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer backdrop-blur-sm transition-all active:scale-95">
+                            <Camera className="h-5 w-5" />
+                            <input
+                                type="file"
+                                onChange={handleImageUpload}
+                                accept="image/*"
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Revert Button */}
+                    {recipe.imageUrl && (
+                        <button
+                            onClick={handleImageRevert}
+                            className="bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer backdrop-blur-sm transition-all active:scale-95"
+                            title="기본(AI) 이미지로 복원"
+                        >
+                            <RotateCcw className="h-5 w-5" />
+                        </button>
+                    )}
+                </div>
+
+                {/* Delete Recipe Button (Top Right) */}
+                <div className="absolute top-4 right-4 z-20">
+                    <button
+                        onClick={handleDeleteRecipe}
+                        className="bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer backdrop-blur-sm transition-all active:scale-95 hover:text-red-400"
+                        title="레시피 삭제"
+                    >
+                        <Trash2 className="h-5 w-5" />
+                    </button>
+                </div>
 
                 {/* Text Content (Front) */}
                 <div className="absolute bottom-6 left-6 right-6 text-white z-10">
