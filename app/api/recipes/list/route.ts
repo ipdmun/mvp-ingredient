@@ -26,11 +26,67 @@ export async function GET() {
         const recipes = await prisma.recipe.findMany({
             where: { userId },
             orderBy: { createdAt: "desc" },
-            include: { ingredients: true }
+            include: {
+                ingredients: {
+                    include: { ingredient: true }
+                }
+            }
         });
 
-        // Manual sanitization just in case, though NextResponse handles JSON well
-        const sanitized = JSON.parse(JSON.stringify(recipes));
+        // Collect all ingredient IDs to fetch prices
+        const allIngredientIds = new Set<number>();
+        recipes.forEach((r: any) => {
+            r.ingredients.forEach((ri: any) => allIngredientIds.add(ri.ingredientId));
+        });
+
+        // Fetch latest prices for these ingredients
+        const prices = await prisma.ingredientPrice.findMany({
+            where: {
+                ingredientId: { in: Array.from(allIngredientIds) }
+            },
+            orderBy: { recordedAt: "desc" },
+            // distinct: ['ingredientId'] // Prisma generic distinct might be tricky, let's manual filter
+        });
+
+        // Create Price Map (Latest Price)
+        const priceMap: Record<number, number> = {};
+        prices.forEach((p: any) => {
+            if (priceMap[p.ingredientId] === undefined) {
+                priceMap[p.ingredientId] = p.price;
+            }
+        });
+
+        // Calculate Metrics for each recipe
+        const enrichedRecipes = recipes.map((recipe: any) => {
+            let totalCost = 0;
+            recipe.ingredients.forEach((ri: any) => {
+                const price = priceMap[ri.ingredientId] || 0;
+                totalCost += price * ri.amount; // total cost for this batch
+            });
+
+            const servings = recipe.servings || 1;
+            const unitCost = Math.round(totalCost / servings); // Cost per serving
+            const sellingPrice = recipe.sellingPrice || 0;
+
+            // Analytics
+            const unitProfit = sellingPrice - unitCost;
+            const costRate = sellingPrice > 0 ? (unitCost / sellingPrice) * 100 : 0;
+            const marginRate = sellingPrice > 0 ? (unitProfit / sellingPrice) * 100 : 0;
+
+            return {
+                ...recipe,
+                analytics: {
+                    totalCost, // Batch cost
+                    unitCost,  // Per serving
+                    unitProfit,
+                    costRate: Number(costRate.toFixed(1)),
+                    marginRate: Number(marginRate.toFixed(1))
+                }
+            };
+        });
+
+        // Manual sanitization
+        const sanitized = JSON.parse(JSON.stringify(enrichedRecipes));
 
         return NextResponse.json({ recipes: sanitized });
     } catch (error: any) {
