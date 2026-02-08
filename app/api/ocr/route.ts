@@ -284,26 +284,45 @@ export async function POST(request: Request) {
 
         // Finalize Business Report
         const netSavings = totalSavings - totalLoss;
-        const monthlyProjection = netSavings * 4; // Assuming weekly shopping
+
+        // Calculate total spend for items that had market analysis
+        let analyzedSpend = 0;
+        let analyzedCount = 0;
+        processedItems.forEach((item: any) => {
+            if (item.marketAnalysis) {
+                analyzedSpend += item.price; // item.price is Total Price from OCR
+                analyzedCount++;
+            }
+        });
+
+        const percentage = analyzedSpend > 0 ? (Math.abs(netSavings) / analyzedSpend) * 100 : 0;
+        const monthlyProjection = Math.abs(netSavings) * 4; // Assuming weekly shopping
 
         const finalReport = [];
 
-        // Title
-        if (netSavings > 0) {
+        // Title & Summary
+        if (analyzedCount === 0) {
+            finalReport.push(`❓ 분석 가능한 식자재가 없습니다. (시장 데이터 부족)`);
+            finalReport.push(`직접 단가를 입력하여 정확한 분석을 받아보세요.`);
+        } else if (netSavings > 0) {
+            // Savings Case
             finalReport.push(`💰 사장님! 이번 장보기로 ${netSavings.toLocaleString()}원을 아끼셨네요!`);
-            finalReport.push(`한 달이면 약 ${monthlyProjection.toLocaleString()}원을 절약하실 수 있어요.`);
+            finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 저렴하며, 한 달이면 약 ${monthlyProjection.toLocaleString()}원을 절약하실 수 있어요.`);
         } else if (netSavings < 0) {
+            // Loss Case
             finalReport.push(`💡 사장님! 이번엔 평소보다 ${Math.abs(netSavings).toLocaleString()}원 더 지출하셨어요.`);
-            finalReport.push(`앱에서 최저가를 확인하고 구매하시면 한 달에 약 ${Math.abs(monthlyProjection).toLocaleString()}원을 아낄 수 있어요!`);
+            finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 비싸며, 최저가 구매 시 한 달에 약 ${monthlyProjection.toLocaleString()}원을 아낄 수 있어요!`);
         } else {
+            // Similar Case (netSavings === 0)
             finalReport.push(`✅ 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
+            finalReport.push(`평균가 대비 차이가 거의 없으며(약 0%), 예상 월간 손실/절감액도 없습니다.`);
         }
 
         // Add specific insights
         finalReport.push(...businessReport);
 
         // Add footer
-        finalReport.push(`(기준: 네이버 및 도매시장 평균 단가 비교)`);
+        finalReport.push(`(기준 : 주요 온라인몰 및 식자재 플랫폼 평균 단가 비교)`);
 
         return NextResponse.json({
             items: processedItems,
