@@ -7,15 +7,17 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
     if (!naverClientId || !naverClientSecret) return null;
 
     // Keywords to exclude (Machines, Seeds, Snacks, Processed foods, etc.)
+    // Keywords to exclude (Machines, Seeds, Snacks, Processed foods, etc.)
     const EXCLUDED_KEYWORDS = [
-        "기계", "이절기", "다듬기", "씨앗", "모종", "비료", "화분", "농약", "제초제", "절단기", // Agriculture tools
-        "메이커", "제조기", "슬라이서", "채칼", "거치대", "받침대", "모형", "장난감", "껍질", "세척기", // Kitchen tools
-        "과자", "스낵", "칩", "안주", "말랭이", "젤리", "사탕", "초콜릿", "쫀드기", "쫄면", "떡볶이", "빵", "케이크", // Processed Snacks (ZZONDEUGI added)
+        "기계", "이절기", "다듬기", "씨앗", "모종", "비료", "화분", "농약", "제초제", "절단기", "호미", "삽", // Agriculture tools
+        "메이커", "제조기", "슬라이서", "채칼", "거치대", "받침대", "모형", "장난감", "껍질", "세척기", "탈피기", // Kitchen tools
+        "과자", "스낵", "칩", "안주", "말랭이", "젤리", "사탕", "초콜릿", "쫀드기", "쫄면", "떡볶이", "빵", "케이크", "쿠키", // Processed Snacks
         "분말", "가루", "파우더", "엑기스", "농축", "즙", "청", "오일", "향", "맛", "시럽", // Processed Ingredients & Flavorings
         "소스", "양념", "드레싱", "시즈닝", // Sauces
         "추억", "간식", "주전부리", "답례품", "선물세트", // Marketing keywords for snacks
-        "곤약", "실곤약", "면", "누들", "국수", "다이어트", "체중", // Diet foods (Tofu confusion prevention)
-        "식당용", "업소용" // Bulk
+        "곤약", "실곤약", "면", "누들", "국수", "다이어트", "체중", // Diet foods
+        // Non-food Containers/Packaging (Crucial for filtering "Onion Bag" vs "Onion")
+        "양파망", "빈병", "공병", "빈박스", "공박스", "용기", "케이스", "바구니", "봉투", "비닐", "포장지", "스티커", "박스만", "트레이"
     ];
 
     try {
@@ -50,7 +52,14 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 // 3. Category Check
                 // MUST contain food-related keywords in the category path.
                 // Strict check: If it contains "주방용품", "가전", "생활", it's risky unless "식품" is explicitly there.
-                // Safest bet: Must include "식품" or "농산물" or "축산물" or "수산물".
+
+                // [Negative Filter] Explicitly exclude non-food categories even if they contain "식품" (e.g. "식품보관용기")
+                const EXCLUDED_CATEGORIES = ["주방용품", "수납", "정리", "원예", "자재", "비료", "농기구", "식기", "그릇", "냄비", "조리도구", "포장", "용기", "잡화"];
+                if (EXCLUDED_CATEGORIES.some(badCat => categories.includes(badCat))) {
+                    continue;
+                }
+
+                // [Positive Filter] Must include basic food categories
                 if (!categories.includes("식품") && !categories.includes("농산물") && !categories.includes("축산물") && !categories.includes("수산물")) {
                     continue;
                 }
