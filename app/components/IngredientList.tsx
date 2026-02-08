@@ -151,6 +151,37 @@ export default function IngredientList({ initialIngredients }: Props) {
         }
     };
 
+    // Helper for Date Formatting (M/D)
+    const formatDate = (date: Date | string) => {
+        const d = new Date(date);
+        return `${d.getMonth() + 1}/${d.getDate()}`;
+    };
+
+    // Helper for Amount Display (20000g -> 20kg)
+    const formatAmount = (amount: number, unit: string) => {
+        if (unit === 'g' && amount >= 1000) {
+            return `${amount / 1000}kg`;
+        }
+        if ((unit === 'ml' || unit === 'l') && amount >= 1000) {
+            return `${amount / 1000}L`;
+        }
+        return `${amount}${unit}`;
+    };
+
+    // Helper to check if a link is generic (Main Page)
+    const isGenericLink = (link?: string) => {
+        if (!link) return true;
+        const generic = [
+            "https://www.coupang.com",
+            "https://www.kurly.com",
+            "https://front.homeplus.co.kr",
+            "https://www.ssg.com",
+            "https://www.lotteon.com",
+            "https://www.garak.co.kr"
+        ];
+        return generic.some(g => link === g || link === g + "/");
+    };
+
     return (
         <div className="space-y-6">
             {/* Search and Sort Toolbar */}
@@ -234,6 +265,18 @@ export default function IngredientList({ initialIngredients }: Props) {
                     const isSelected = selectedIds.includes(item.id);
                     const latestPrice = item.prices[0];
 
+                    // Unit Price Display Logic (Convert g -> kg for main display if needed)
+                    let displayUnitPrice = latest;
+                    let displayUnit = item.unit;
+
+                    if (item.unit === 'g') {
+                        displayUnitPrice = latest * 1000;
+                        displayUnit = 'kg';
+                    } else if (item.unit === 'ml') {
+                        displayUnitPrice = latest * 1000;
+                        displayUnit = 'L';
+                    }
+
                     return (
                         <div
                             key={item.id}
@@ -280,7 +323,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 {item.name}
                                             </div>
                                             <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded">
-                                                {item.unit.toLowerCase()}
+                                                {displayUnit.toLowerCase()}
                                             </span>
                                         </div>
                                     </div>
@@ -288,7 +331,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                         <div className="flex flex-col items-end">
                                             <p className="text-xl font-black text-gray-900">
                                                 {latest > 0
-                                                    ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', item.unit)).toLocaleString()}원/${item.unit}`
+                                                    ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', displayUnit)).toLocaleString()}원/${displayUnit}`
                                                     : "기록 없음"
                                                 }
                                             </p>
@@ -297,9 +340,9 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             {latestPrice && (
                                                 <div className="mt-1 flex flex-col items-end gap-0.5">
                                                     <p className="text-[10px] text-gray-400 font-medium">
-                                                        {new Date(latestPrice.recordedAt).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' })}
+                                                        {formatDate(latestPrice.recordedAt)}
                                                         {' '}
-                                                        {latestPrice.amount ? `${latestPrice.amount}${latestPrice.unit}` : ''}
+                                                        {latestPrice.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : ''}
                                                         {' '}
                                                         {latestPrice.totalPrice ? `${latestPrice.totalPrice.toLocaleString()}원` : ''}
                                                     </p>
@@ -339,11 +382,18 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 {marketData ? (
                                                     <a
                                                         href={(() => {
+                                                            // If we have a specific link (not generic), use it.
+                                                            if (marketData.link && !isGenericLink(marketData.link)) {
+                                                                return marketData.link;
+                                                            }
+
+                                                            // Otherwise, generate a smart search link
                                                             const sourceName = marketData.cheapestSource || "";
-                                                            // Construct query with amount if available from latest history
-                                                            const amountQuery = latestPrice?.amount ? `${latestPrice.amount}${latestPrice.unit}` : "";
-                                                            // Priority: User's latest amount -> Just name
-                                                            const query = `${item.name} ${amountQuery}`.trim();
+                                                            const itemAmount = latestPrice?.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : "";
+
+                                                            // Priority: User's Name + Amount
+                                                            // e.g. "배추 20kg", "양파 5kg"
+                                                            const query = `${item.name} ${itemAmount}`.trim();
 
                                                             if (sourceName.includes("쿠팡")) return `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(query)}&channel=user`;
                                                             if (sourceName.includes("마켓컬리") || sourceName.includes("컬리")) return `https://www.kurly.com/search?keyword=${encodeURIComponent(query)}`;
@@ -352,7 +402,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                             if (sourceName.includes("롯데마트")) return `https://www.lotteon.com/search/search/search.ecn?render=search&platform=pc&q=${encodeURIComponent(query)}&mallId=4`;
                                                             if (sourceName.includes("가락시장")) return `https://www.garak.co.kr/price/adj/grad/list.do`;
 
-                                                            return marketData.link || `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(query)}`;
+                                                            return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(query)}`;
                                                         })()}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
