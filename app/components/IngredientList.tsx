@@ -424,9 +424,23 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                     {weekAvg > 0 ? `${Math.round(convertPriceForDisplay(weekAvg, item.prices[0]?.unit || 'g', item.unit)).toLocaleString()}원` : "-"}
                                                 </p>
                                             </div>
-                                            <span className="text-[10px] font-medium text-gray-400 group-hover:text-blue-500">
-                                                최저가 확인
-                                            </span>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <div onClick={(e) => handleRefreshPrice(e, item.id)} className="flex items-center gap-1 cursor-pointer hover:bg-gray-100 rounded px-1 -mr-1">
+                                                    <Loader2 className={`h-3 w-3 text-gray-400 ${refreshingId === item.id ? 'animate-spin' : ''}`} />
+                                                    <span className="text-[10px] font-medium text-gray-400 hover:text-blue-500">
+                                                        데이터 갱신
+                                                    </span>
+                                                </div>
+                                                <a
+                                                    href={`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(`${item.name} ${latestPrice && latestPrice.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : ''}`.trim())}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-0.5"
+                                                >
+                                                    직접 검색 <ArrowRight className="h-2.5 w-2.5" />
+                                                </a>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -470,18 +484,18 @@ export default function IngredientList({ initialIngredients }: Props) {
             )}
 
             {/* Scroll Buttons */}
-            <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">
+            <div className="fixed bottom-24 right-6 flex flex-col gap-2 z-50">
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                     className="p-3 bg-white border border-gray-200 rounded-full shadow-lg text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:shadow-xl transition-all"
                 >
-                    <ArrowUpDown className="h-5 w-5 rotate-180" />
+                    <ArrowRight className="h-5 w-5 -rotate-90" />
                 </button>
                 <button
                     onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
                     className="p-3 bg-white border border-gray-200 rounded-full shadow-lg text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:shadow-xl transition-all"
                 >
-                    <ArrowUpDown className="h-5 w-5" />
+                    <ArrowRight className="h-5 w-5 rotate-90" />
                 </button>
             </div>
         </div>

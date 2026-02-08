@@ -115,12 +115,15 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     }
 
     // 2. Fallback to static data if API fails or no result
+    // DISABLED: User requested removal of generic static data.
+    /*
     if (!marketData) {
         const key = Object.keys(STATIC_MARKET_PRICES).find(k => name.includes(k));
         if (key) {
             marketData = STATIC_MARKET_PRICES[key];
         }
     }
+    */
 
     if (!marketData) return null;
 
@@ -146,6 +149,7 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         status: status,
         diff: diff,
         link: marketData.link,
+        cheapestLink: marketData.link, // Store explicitly as cheapestLink
         marketDataRaw: marketData // For debugging or direct access
     };
 };
