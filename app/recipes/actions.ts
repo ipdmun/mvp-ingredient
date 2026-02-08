@@ -463,3 +463,28 @@ export async function updateRecipe(recipeId: number, data: { name?: string, desc
         return { success: false, error: "수정 오류: " + err.message };
     }
 }
+
+export async function updateRecipeImage(recipeId: number, base64Image: string) {
+    const userId = await getSafeUserId();
+    if (!userId) return { success: false, error: "세션 만료" };
+
+    try {
+        const recipe = await prisma.recipe.findFirst({ where: { id: recipeId, userId } });
+        if (!recipe) return { success: false, error: "권한 없음" };
+
+        await prisma.recipe.update({
+            where: { id: recipeId },
+            data: {
+                imageUrl: base64Image,
+                illustrationPrompt: null // Clear prompt if user sets custom image so it takes priority
+            }
+        });
+
+        revalidatePath(`/recipes/${recipeId}`);
+        revalidatePath("/recipes");
+        return { success: true };
+    } catch (err: any) {
+        console.error("[UpdateRecipeImage] FAILED:", err);
+        return { success: false, error: "이미지 저장 오류: " + err.message };
+    }
+}
