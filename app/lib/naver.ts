@@ -6,7 +6,13 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
 
     if (!naverClientId || !naverClientSecret) return null;
 
-    // Keywords to exclude (Machines, Seeds, Snacks, Processed foods, etc.)
+    // [Keyword Alias for Single Character Queries]
+    if (queryName === "무") queryName = "무우";
+    if (queryName === "파") queryName = "대파";
+    if (queryName === "마") queryName = "산마";
+    if (queryName === "쑥") queryName = "쑥 나물";
+    if (queryName === "갓") queryName = "돌산갓";
+
     // Keywords to exclude (Machines, Seeds, Snacks, Processed foods, etc.)
     const EXCLUDED_KEYWORDS = [
         "기계", "이절기", "다듬기", "씨앗", "모종", "비료", "화분", "농약", "제초제", "절단기", "호미", "삽", // Agriculture tools
@@ -14,10 +20,12 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
         "과자", "스낵", "칩", "안주", "말랭이", "젤리", "사탕", "초콜릿", "쫀드기", "쫄면", "떡볶이", "빵", "케이크", "쿠키", // Processed Snacks
         "분말", "가루", "파우더", "엑기스", "농축", "즙", "청", "오일", "향", "맛", "시럽", // Processed Ingredients & Flavorings
         "소스", "양념", "드레싱", "시즈닝", // Sauces
-        "추억", "간식", "주전부리", "답례품", "선물세트", // Marketing keywords for snacks
+        "추억", "간식", "주전부리", "답례품", "선물세트", "홍보", "판촉", "인쇄", "스티커", // Marketing keywords for snacks
         "곤약", "실곤약", "면", "누들", "국수", "다이어트", "체중", // Diet foods
         // Non-food Containers/Packaging (Crucial for filtering "Onion Bag" vs "Onion")
-        "양파망", "빈병", "공병", "빈박스", "공박스", "용기", "케이스", "바구니", "봉투", "비닐", "포장지", "스티커", "박스만", "트레이"
+        "양파망", "빈병", "공병", "빈박스", "공박스", "용기", "케이스", "바구니", "봉투", "비닐", "포장지", "박스만", "트레이",
+        // Non-Food Items (Toys, Education, Stationery, Masks) - Fix for "Pork Mask" & "Cabbage Toy"
+        "마스크", "우드", "팬시", "문구", "완구", "교구", "학습", "교재", "MDF", "부자재", "만들기", "장식", "가짜", "모형", "사료"
     ];
 
     try {
@@ -54,7 +62,8 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 // Strict check: If it contains "주방용품", "가전", "생활", it's risky unless "식품" is explicitly there.
 
                 // [Negative Filter] Explicitly exclude non-food categories even if they contain "식품" (e.g. "식품보관용기")
-                const EXCLUDED_CATEGORIES = ["주방용품", "수납", "정리", "원예", "자재", "비료", "농기구", "식기", "그릇", "냄비", "조리도구", "포장", "용기", "잡화"];
+                // Added: "문구", "완구", "교구", "서적", "출산", "육아", "취미", "반려동물"
+                const EXCLUDED_CATEGORIES = ["주방용품", "수납", "정리", "원예", "자재", "비료", "농기구", "식기", "그릇", "냄비", "조리도구", "포장", "용기", "잡화", "문구", "완구", "교구", "서적", "출산", "육아", "취미", "반려동물", "공구", "산업"];
                 if (EXCLUDED_CATEGORIES.some(badCat => categories.includes(badCat))) {
                     continue;
                 }
@@ -109,6 +118,10 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     // Strategy: Try specific "Name + Amount + Unit" first (e.g. "Onion 10kg"), if that fails, try "Name".
 
     let searchQueries: string[] = [];
+
+    // [Fix Single Char Query Issue for "getMarketAnalysis"]
+    // If name is "무", alias it here too just in case (though fetchNaverPrice handles it internally now)
+    // But expanding queries logic uses original name.
 
     // If unit is standard weight/volume, prioritize specific search
     if (amount > 0 && (unit === 'kg' || unit === 'g' || unit === 'L' || unit === 'ml')) {
