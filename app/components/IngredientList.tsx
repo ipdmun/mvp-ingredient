@@ -321,9 +321,21 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             </div>
 
                                             <div className="flex items-baseline justify-between">
-                                                {marketData.link ? (
+                                                {marketData ? (
                                                     <a
-                                                        href={marketData.link}
+                                                        href={(() => {
+                                                            const sourceName = marketData.cheapestSource || "";
+                                                            const query = item.name;
+
+                                                            if (sourceName.includes("쿠팡")) return `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(query)}&channel=user`;
+                                                            if (sourceName.includes("마켓컬리") || sourceName.includes("컬리")) return `https://www.kurly.com/search?keyword=${encodeURIComponent(query)}`;
+                                                            if (sourceName.includes("홈플러스")) return `https://front.homeplus.co.kr/search?entry=direct&keyword=${encodeURIComponent(query)}`;
+                                                            if (sourceName.includes("이마트") || sourceName.includes("SSG")) return `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(query)}`;
+                                                            if (sourceName.includes("롯데마트")) return `https://www.lotteon.com/search/search/search.ecn?render=search&platform=pc&q=${encodeURIComponent(query)}&mallId=4`;
+                                                            if (sourceName.includes("가락시장")) return `https://www.garak.co.kr/price/adj/grad/list.do`;
+
+                                                            return marketData.link || `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(query)}`;
+                                                        })()}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         onClick={(e) => e.stopPropagation()}
@@ -333,7 +345,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                     </a>
                                                 ) : (
                                                     <p className="text-xs text-gray-400 truncate max-w-[60%] group-hover/badge:text-gray-600 transition-colors">
-                                                        {marketData.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
+                                                        -
                                                     </p>
                                                 )}
                                                 <p className="text-lg font-black text-gray-900">
