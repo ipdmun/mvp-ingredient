@@ -56,8 +56,8 @@ export default function IngredientPriceSummary({ prices, unit, lowestPrice }: Pr
 
         if (totalAmount === 0) return 0;
 
-        // RAW average (e.g. per g)
-        const rawAverage = Math.round(totalSpend / totalAmount);
+        // RAW average (e.g. per g) - Do NOT round here to avoid precision loss (e.g. 1.6 -> 2 -> 2000)
+        const rawAverage = totalSpend / totalAmount;
 
         // Convert to Display Unit (e.g. per kg)
         const sourceUnit = filteredPrices[0]?.unit || 'g';

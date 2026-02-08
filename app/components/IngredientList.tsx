@@ -346,8 +346,8 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                         {' '}
                                                         {latestPrice.totalPrice ? `${latestPrice.totalPrice.toLocaleString()}원` : ''}
                                                     </p>
-                                                    <p className="text-[9px] text-gray-300">
-                                                        ({Math.round(latestPrice.price).toLocaleString()}원/{latestPrice.unit})
+                                                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                                        ({Math.round(convertPriceForDisplay(latestPrice.price, latestPrice.unit, displayUnit)).toLocaleString()}원/{displayUnit})
                                                     </p>
                                                 </div>
                                             )}
