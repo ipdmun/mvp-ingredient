@@ -443,7 +443,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                                 onClick={(e) => e.stopPropagation()}
                                                                 className="text-xs text-blue-500 underline truncate max-w-[60%] hover:text-blue-700 transition-colors"
                                                             >
-                                                                {currentCandidate.source.replace("네이버최저가(", "").replace(")", "")}
+                                                                {(currentCandidate.source || currentCandidate.cheapestSource || "Unknown").replace("네이버최저가(", "").replace(")", "")}
                                                             </a>
                                                             <p className="text-lg font-black text-gray-900">
                                                                 {currentCandidate.price.toLocaleString()}원
