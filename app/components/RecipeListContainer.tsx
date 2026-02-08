@@ -209,70 +209,69 @@ export default function RecipeListContainer() {
                                             DETAIL <ArrowRight className="h-3 w-3" />
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Analytics Section */}
-                                <div className="mb-3 grid grid-cols-2 gap-2 text-center">
-                                    <div className="rounded-lg bg-gray-50 p-2">
-                                        <p className="text-[10px] font-bold text-gray-400">원가 (1인)</p>
-                                        <p className="text-sm font-black text-gray-900">
-                                            {recipe.analytics?.unitCost.toLocaleString() ?? 0}원
-                                        </p>
+                                    {/* Analytics Section */}
+                                    <div className="mb-3 grid grid-cols-2 gap-2 text-center">
+                                        <div className="rounded-lg bg-gray-50 p-2">
+                                            <p className="text-[10px] font-bold text-gray-400">원가 (1인)</p>
+                                            <p className="text-sm font-black text-gray-900">
+                                                {recipe.analytics?.unitCost.toLocaleString() ?? 0}원
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-gray-50 p-2">
+                                            <p className="text-[10px] font-bold text-gray-400">이익</p>
+                                            <p className={`text-sm font-black ${recipe.analytics?.unitProfit > 0 ? "text-blue-600" : "text-red-500"}`}>
+                                                {recipe.analytics?.unitProfit.toLocaleString() ?? 0}원
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-gray-50 p-2">
+                                            <p className="text-[10px] font-bold text-gray-400">원가율</p>
+                                            <p className="text-sm font-black text-gray-900">
+                                                {recipe.analytics?.costRate ?? 0}%
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-gray-50 p-2">
+                                            <p className="text-[10px] font-bold text-gray-400">마진율</p>
+                                            <p className={`text-sm font-black ${recipe.analytics?.marginRate > 0 ? "text-blue-600" : "text-red-500"}`}>
+                                                {recipe.analytics?.marginRate ?? 0}%
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="rounded-lg bg-gray-50 p-2">
-                                        <p className="text-[10px] font-bold text-gray-400">이익</p>
-                                        <p className={`text-sm font-black ${recipe.analytics?.unitProfit > 0 ? "text-blue-600" : "text-red-500"}`}>
-                                            {recipe.analytics?.unitProfit.toLocaleString() ?? 0}원
-                                        </p>
-                                    </div>
-                                    <div className="rounded-lg bg-gray-50 p-2">
-                                        <p className="text-[10px] font-bold text-gray-400">원가율</p>
-                                        <p className="text-sm font-black text-gray-900">
-                                            {recipe.analytics?.costRate ?? 0}%
-                                        </p>
-                                    </div>
-                                    <div className="rounded-lg bg-gray-50 p-2">
-                                        <p className="text-[10px] font-bold text-gray-400">마진율</p>
-                                        <p className={`text-sm font-black ${recipe.analytics?.marginRate > 0 ? "text-blue-600" : "text-red-500"}`}>
-                                            {recipe.analytics?.marginRate ?? 0}%
-                                        </p>
-                                    </div>
-                                </div>
 
-                                <div className="flex items-center gap-4 text-xs font-bold text-gray-500 border-t border-gray-100 pt-3">
-                                    <span className="flex items-center gap-1">
-                                        <Plus className="h-3 w-3" /> {recipe.ingredients.length} Ingredients
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        {recipe.servings} Servings
-                                    </span>
+                                    <div className="flex items-center gap-4 text-xs font-bold text-gray-500 border-t border-gray-100 pt-3">
+                                        <span className="flex items-center gap-1">
+                                            <Plus className="h-3 w-3" /> {recipe.ingredients.length} Ingredients
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            {recipe.servings} Servings
+                                        </span>
+                                    </div>
                                 </div>
-                        </div>
                             </Link>
 
-            {/* Only show delete button when NOT editing to avoid clutter */}
-            {editingId !== recipe.id && (
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
-                    <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={fetchRecipes} />
-                </div>
-            )}
-        </div>
-    );
-})}
+                            {/* Only show delete button when NOT editing to avoid clutter */}
+                            {editingId !== recipe.id && (
+                                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+                                    <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={fetchRecipes} />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
 
-{/* Add New Button Card */ }
-<AddRecipeModalClient onAddSuccess={fetchRecipes} />
+                {/* Add New Button Card */}
+                <AddRecipeModalClient onAddSuccess={fetchRecipes} />
             </div >
 
-{
-    recipes.length === 0 && !loading && (
-        <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
-            <ChefHat className="h-12 w-12 text-gray-300 mb-2" />
-            <p className="text-sm font-bold text-gray-400">등록된 메뉴가 없습니다.</p>
-            <p className="text-xs text-gray-400">아래 버튼을 눌러 첫 메뉴를 등록해보세요!</p>
-        </div>
-    )
-}
+            {
+                recipes.length === 0 && !loading && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
+                        <ChefHat className="h-12 w-12 text-gray-300 mb-2" />
+                        <p className="text-sm font-bold text-gray-400">등록된 메뉴가 없습니다.</p>
+                        <p className="text-xs text-gray-400">아래 버튼을 눌러 첫 메뉴를 등록해보세요!</p>
+                    </div>
+                )
+            }
         </div >
     );
 }
