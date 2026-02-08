@@ -86,7 +86,7 @@ model Ingredient {
 model IngredientPrice {
   id           Int        @id @default(autoincrement())
   ingredientId Int
-  price        Int        // 단위당 가격
+  price        Float      // 단위당 가격
   totalPrice   Int?       // 실제 적힌 구매 가격 (총액)
   amount       Float?     // 실제 적힌 수량/중량
   unit         String
