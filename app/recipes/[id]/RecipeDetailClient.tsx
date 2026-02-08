@@ -210,6 +210,8 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
         displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=1200&height=600&nologo=true&model=flux&seed=${recipe.id}`;
     }
 
+    const [isImageLoading, setIsImageLoading] = useState(true);
+
     return (
         <main className="min-h-screen bg-gray-50/50 pb-24">
             {/* Header */}
@@ -259,13 +261,23 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
 
             {/* AI Generated Image Header (Menu Card Style) */}
             <div className="relative h-64 w-full bg-gray-900 overflow-hidden shadow-inner group">
+                {/* Loading Overlay */}
+                {isImageLoading && (
+                    <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-20 text-gray-400">
+                        <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                        <span className="text-xs font-bold">이미지 생성중...</span>
+                    </div>
+                )}
+
                 {/* Background Image */}
                 <img
                     src={displayUrl}
                     alt={recipe.name}
-                    className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
+                    className={`absolute inset-0 h-full w-full object-cover opacity-90 transition-all duration-700 group-hover:scale-105 ${isImageLoading ? 'opacity-0' : 'opacity-90'}`}
+                    onLoad={() => setIsImageLoading(false)}
                     onError={(e) => {
                         e.currentTarget.style.display = 'none';
+                        setIsImageLoading(false);
                         e.currentTarget.nextElementSibling?.classList.remove('hidden');
                     }}
                 />

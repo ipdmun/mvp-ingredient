@@ -258,8 +258,8 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
 
             {/* Delete Button - Optimized for Mobile */}
             {!isEditing && (
-                <div className="absolute top-3 right-3 transition-opacity pointer-events-auto opacity-100 md:opacity-0 md:group-hover:opacity-100 z-30">
-                    <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={onDeleteSuccess} />
+                <div className="transition-opacity pointer-events-auto opacity-100 md:opacity-0 md:group-hover:opacity-100 z-30">
+                    <DeleteRecipeButton recipeId={recipe.id} onDeleteSuccess={onDeleteSuccess} variant="overlay" />
                 </div>
             )}
         </div>

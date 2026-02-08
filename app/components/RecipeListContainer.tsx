@@ -75,10 +75,9 @@ export default function RecipeListContainer() {
                     <p className="text-gray-500">등록된 레시피와 원가율을 한눈에 확인하세요.</p>
                 </div>
                 <AddRecipeModalClient onAddSuccess={fetchRecipes}>
-                    <button className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-black active:scale-95 transition-all shadow-lg shadow-gray-200">
+                    <button className="flex items-center justify-center gap-2 bg-gray-900 text-white p-2 sm:px-5 sm:py-2.5 rounded-full sm:rounded-xl font-bold hover:bg-black active:scale-95 transition-all shadow-lg shadow-gray-200">
                         <Plus className="h-5 w-5" />
                         <span className="hidden sm:inline">새 메뉴 등록</span>
-                        <span className="sm:hidden">등록</span>
                     </button>
                 </AddRecipeModalClient>
             </div>

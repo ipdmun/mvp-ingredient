@@ -142,23 +142,27 @@ export function convertIngredientAmount(
  * Helper to convert decimal amount to friendly fraction string if applicable.
  */
 function toFractionString(val: number): string | number {
-    if (val >= 0.9 && val <= 1.1) return "1";
-    if (val >= 0.4 && val <= 0.6) return "1/2";
-    if (val >= 0.2 && val <= 0.3) return "1/4";
-    if (val >= 0.31 && val <= 0.35) return "1/3";
-    if (val >= 0.18 && val <= 0.22) return "1/5";
+    // Tolerance for float comparison
+    const eps = 0.05;
 
-    // Spoons specific
-    if (val >= 1.8 && val <= 2.2) return "2";
-    if (val >= 2.8 && val <= 3.2) return "3";
+    // Integers
+    if (Math.abs(val - Math.round(val)) < eps) return Math.round(val);
 
-    // Integer check
-    if (Number.isInteger(val)) return val;
+    // Common Fractions
+    if (Math.abs(val - 0.5) < eps) return "1/2";
+    if (Math.abs(val - 0.25) < eps) return "1/4";
+    if (Math.abs(val - 0.75) < eps) return "3/4";
+    if (Math.abs(val - 0.33) < eps) return "1/3";
+    if (Math.abs(val - 0.66) < eps) return "2/3";
+    if (Math.abs(val - 0.2) < eps) return "1/5";
+    if (Math.abs(val - 0.125) < eps) return "1/8";
 
-    // Default rounding
+    // Spoons specific (1.5, 2.5 handled by int check? No)
+    if (Math.abs(val - 1.5) < eps) return "1.5"; // Or 1 1/2? User asked for 1/n if < 1. For > 1 decimals are usually ok or "1과 1/2" which is complex.
+    // Let's stick to decimals for > 1 unless it's a hole number.
+
+    // Default rounding logic
     if (val > 1) return Number(val.toFixed(1));
-
-    // Small decimals
     return Number(val.toFixed(2));
 }
 
