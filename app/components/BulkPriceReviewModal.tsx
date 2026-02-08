@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X, AlertTriangle, Loader2, Pencil, Trash2, Save, Plus } from "lucide-react";
+import { Check, X, AlertTriangle, Loader2, Pencil, Trash2, Save, Plus, Share2 } from "lucide-react";
 import { createBulkIngredientPrices } from "@/app/ingredients/actions";
 import { getIngredientIcon } from "@/app/lib/utils";
 
@@ -202,17 +202,35 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                         <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
                             <h4 className="text-sm font-black text-purple-900 mb-2 flex items-center gap-2">
                                 🤖 AI 분석 리포트
-                                <button onClick={() => setShowReport(false)} className="text-xs text-purple-400 underline font-normal ml-auto">숨기기</button>
+                                <div className="ml-auto flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const text = `[식자재 비서 AI 분석 리포트]\n\n${analystReport.join("\n")}`;
+                                            if (navigator.share) {
+                                                navigator.share({
+                                                    title: '식자재 분석 리포트',
+                                                    text: text,
+                                                }).catch(console.error);
+                                            } else {
+                                                navigator.clipboard.writeText(text);
+                                                alert("리포트 내용이 복사되었습니다.");
+                                            }
+                                        }}
+                                        className="text-xs flex items-center gap-1 bg-white border border-purple-200 text-purple-600 px-2 py-1 rounded-lg hover:bg-purple-50 transition-colors"
+                                    >
+                                        <Share2 className="h-3 w-3" /> 공유하기
+                                    </button>
+                                    <button onClick={() => setShowReport(false)} className="text-xs text-purple-400 underline font-normal">숨기기</button>
+                                </div>
                             </h4>
                             <div className="space-y-1">
-                                {analystReport.map((rep, idx) => (
-                                    <div key={idx} className="flex text-xs items-center gap-2 border-b border-purple-100/50 last:border-0 pb-1 last:pb-0">
-                                        <span className="font-bold text-gray-700 min-w-[60px]">{rep.품목}</span>
-                                        <span className="text-gray-500">{rep.수량}</span>
-                                        <span className="text-gray-500 ml-auto">{rep.단가}</span>
-                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${rep.상태 === '정상' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{rep.상태}</span>
-                                    </div>
-                                ))}
+                                <div className="space-y-2">
+                                    {analystReport.map((rep, idx) => (
+                                        <div key={idx} className="flex flex-col sm:flex-row text-sm items-start sm:items-center gap-1 sm:gap-2 border-b border-purple-100/50 last:border-0 pb-2 last:pb-0">
+                                            <span className="text-gray-700 leading-relaxed font-medium">{rep}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
