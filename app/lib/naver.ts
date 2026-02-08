@@ -108,35 +108,41 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     searchQueries.push(name); // Fallback
 
     let marketData = null;
+    let matchType: 'specific' | 'fallback' = 'fallback';
 
     for (const query of searchQueries) {
         marketData = await fetchNaverPrice(query);
-        if (marketData) break;
-    }
-
-    // 2. Fallback to static data if API fails or no result
-    // DISABLED: User requested removal of generic static data.
-    /*
-    if (!marketData) {
-        const key = Object.keys(STATIC_MARKET_PRICES).find(k => name.includes(k));
-        if (key) {
-            marketData = STATIC_MARKET_PRICES[key];
+        if (marketData) {
+            // Check if this was a specific query match
+            // query matches specifically if it matches the first query in list (amount included scenario)
+            if (amount > 0 && query === searchQueries[0] && searchQueries.length > 1) {
+                matchType = 'specific';
+            }
+            break;
         }
     }
-    */
 
     if (!marketData) return null;
 
     const marketPrice = marketData.price;
+    let diff = 0;
 
-    // Normalize scanned price to unit price if possible
-    let scannedUnitPrice = price;
-    if (amount > 1 && (unit === 'kg' || unit === '개' || unit === '단' || unit === '망')) {
-        scannedUnitPrice = price / amount;
+    // Check query strategy result
+    // If we matched specific quantity (e.g. "Onion 15kg"), Naver result is Total Price for 15kg.
+    // If we matched fallback (e.g. "Onion"), Naver result is likely Cheapest Unit Price (1kg or 1ea).
+
+    if (matchType === 'specific') {
+        const totalDiff = price - marketPrice;
+        // Normalize to Unit Diff so downstream logic (which usually multiplies by amount) works consistently
+        diff = (amount > 0) ? totalDiff / amount : totalDiff;
+    } else {
+        // Fallback Match:
+        // Compare Unit Price (User) vs Unit Price (Naver)
+        // Calculate user's unit price
+        const userUnitPrice = amount > 0 ? price / amount : price;
+        diff = userUnitPrice - marketPrice;
     }
 
-    // Simple Comparison
-    const diff = scannedUnitPrice - marketPrice;
     let status: "BEST" | "GOOD" | "BAD" = "GOOD";
 
     if (diff <= -500) status = "BEST";   // Cheaper by 500+
@@ -149,7 +155,7 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         status: status,
         diff: diff,
         link: marketData.link,
-        cheapestLink: marketData.link, // Store explicitly as cheapestLink
-        marketDataRaw: marketData // For debugging or direct access
+        cheapestLink: marketData.link,
+        marketDataRaw: marketData
     };
 };

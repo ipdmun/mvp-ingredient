@@ -247,7 +247,8 @@ export async function POST(request: Request) {
             // 2. Perform Market Analysis (Comparison)
             let marketAnalysis = null;
             try {
-                marketAnalysis = await checkMarketPrice(cleanName, unitPrice, item.unit, item.amount || 1);
+                // Pass TOTAL PRICE (item.price) to checkMarketPrice for accurate comparison
+                marketAnalysis = await checkMarketPrice(cleanName, item.price, item.unit, item.amount || 1);
             } catch (e) {
                 console.error("Market Price Check Error for", cleanName, e);
             }

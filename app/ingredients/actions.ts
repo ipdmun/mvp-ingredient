@@ -380,9 +380,14 @@ export async function refreshIngredientPrice(ingredientId: number) {
 
     // 2. Fetch fresh market data
     const { getMarketAnalysis } = await import("@/app/lib/naver");
+
+    // Use Total Price for accurate comparison (matches naver.ts logic)
+    // @ts-ignore
+    const totalPrice = latestPrice.totalPrice ?? (latestPrice.price * (latestPrice.amount || 1));
+
     const analysis = await getMarketAnalysis(
         ingredient.name,
-        latestPrice.price,
+        totalPrice,
         latestPrice.unit,
         latestPrice.amount || 1
     );
