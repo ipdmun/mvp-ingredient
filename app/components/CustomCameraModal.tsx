@@ -139,11 +139,7 @@ export default function CustomCameraModal({ onCapture, onClose }: Props) {
                 <button onClick={onClose} className="rounded-full bg-white/10 p-2 text-white">
                     <X className="h-6 w-6" />
                 </button>
-                {cameras.length > 1 && (
-                    <button onClick={switchCamera} className="rounded-full bg-white/10 p-2 text-white">
-                        <RefreshCw className="h-6 w-6" />
-                    </button>
-                )}
+                {/* Switch Camera Button Removed as per request */}
             </div>
 
             {/* Viewfinder */}

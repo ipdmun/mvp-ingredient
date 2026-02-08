@@ -55,13 +55,15 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                     continue;
                 }
 
-                // 4. Title Match Check (CRITICAL FIX)
-                // The title MUST contain the query name.
-                // Remove spaces for better matching (e.g. "돼지고기" matching "돼지 고기")
-                const normalizedTitle = title.replace(/\s+/g, "");
-                const normalizedQuery = queryName.replace(/\s+/g, "").toLowerCase();
+                // 4. Title Match Check (Relaxed)
+                // The title MUST contain ALL keywords from the query.
+                // e.g. Query: "배추 20kg" -> Title must contain "배추" AND "20kg"
+                const queryParts = queryName.toLowerCase().split(/\s+/).filter(Boolean);
+                const titleLower = title.toLowerCase(); // Title already lowercased above
 
-                if (!normalizedTitle.includes(normalizedQuery)) {
+                const allKeywordsMatch = queryParts.every(part => titleLower.includes(part));
+
+                if (!allKeywordsMatch) {
                     continue;
                 }
 

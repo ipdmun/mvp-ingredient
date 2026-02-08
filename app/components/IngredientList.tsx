@@ -322,9 +322,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate">
                                                 {item.name}
                                             </div>
-                                            <span className="text-[10px] font-bold text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded">
-                                                {displayUnit.toLowerCase()}
-                                            </span>
+                                            {/* Unit display removed as per user request */}
                                         </div>
                                     </div>
                                     <div className="text-right shrink-0">
@@ -382,25 +380,14 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 {marketData ? (
                                                     <a
                                                         href={(() => {
-                                                            // If we have a specific link (not generic), use it.
-                                                            if (marketData.link && !isGenericLink(marketData.link)) {
+                                                            // Trust the API link if it exists and isn't empty.
+                                                            if (marketData.link && marketData.link.length > 0) {
                                                                 return marketData.link;
                                                             }
 
-                                                            // Otherwise, generate a smart search link
-                                                            const sourceName = marketData.cheapestSource || "";
+                                                            // Fallback: Smart Search Link
                                                             const itemAmount = latestPrice?.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : "";
-
-                                                            // Priority: User's Name + Amount
-                                                            // e.g. "배추 20kg", "양파 5kg"
                                                             const query = `${item.name} ${itemAmount}`.trim();
-
-                                                            if (sourceName.includes("쿠팡")) return `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(query)}&channel=user`;
-                                                            if (sourceName.includes("마켓컬리") || sourceName.includes("컬리")) return `https://www.kurly.com/search?keyword=${encodeURIComponent(query)}`;
-                                                            if (sourceName.includes("홈플러스")) return `https://front.homeplus.co.kr/search?entry=direct&keyword=${encodeURIComponent(query)}`;
-                                                            if (sourceName.includes("이마트") || sourceName.includes("SSG")) return `https://www.ssg.com/search.ssg?target=all&query=${encodeURIComponent(query)}`;
-                                                            if (sourceName.includes("롯데마트")) return `https://www.lotteon.com/search/search/search.ecn?render=search&platform=pc&q=${encodeURIComponent(query)}&mallId=4`;
-                                                            if (sourceName.includes("가락시장")) return `https://www.garak.co.kr/price/adj/grad/list.do`;
 
                                                             return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(query)}`;
                                                         })()}
@@ -481,6 +468,22 @@ export default function IngredientList({ initialIngredients }: Props) {
                     검색 결과가 없습니다.
                 </div>
             )}
+
+            {/* Scroll Buttons */}
+            <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">
+                <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    className="p-3 bg-white border border-gray-200 rounded-full shadow-lg text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:shadow-xl transition-all"
+                >
+                    <ArrowUpDown className="h-5 w-5 rotate-180" />
+                </button>
+                <button
+                    onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
+                    className="p-3 bg-white border border-gray-200 rounded-full shadow-lg text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:shadow-xl transition-all"
+                >
+                    <ArrowUpDown className="h-5 w-5" />
+                </button>
+            </div>
         </div>
     );
 }
