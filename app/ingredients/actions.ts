@@ -197,6 +197,11 @@ export async function deleteIngredient(id: number) {
     console.log(`[deleteIngredient] Request for ID: ${id}`);
 
     try {
+        // [Fresh Start] Delete all price history when deleting an ingredient
+        await prisma.ingredientPrice.deleteMany({
+            where: { ingredientId: id }
+        });
+
         const update = await prisma.ingredient.update({
             where: {
                 id,
@@ -204,7 +209,7 @@ export async function deleteIngredient(id: number) {
             },
             data: { isDeleted: true }
         });
-        console.log(`[deleteIngredient] Success: ${id}, isDeleted: ${update.isDeleted}`);
+        console.log(`[deleteIngredient] Success: ${id}, history wiped, isDeleted: true`);
 
         revalidatePath("/ingredients", "page");
         revalidatePath("/", "layout");
@@ -222,6 +227,11 @@ export async function bulkDeleteIngredients(ids: number[]) {
     console.log(`[bulkDelete] Request for IDs: ${ids.join(', ')}`);
 
     try {
+        // [Fresh Start] Delete all price history for these ingredients
+        await prisma.ingredientPrice.deleteMany({
+            where: { ingredientId: { in: ids } }
+        });
+
         const result = await prisma.ingredient.updateMany({
             where: {
                 id: { in: ids },
@@ -229,7 +239,7 @@ export async function bulkDeleteIngredients(ids: number[]) {
             },
             data: { isDeleted: true }
         });
-        console.log(`[bulkDelete] Success. Count: ${result.count}`);
+        console.log(`[bulkDelete] Success. Count: ${result.count}, price history wiped.`);
 
         revalidatePath("/ingredients", "page");
         revalidatePath("/", "layout");
