@@ -30,9 +30,9 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
 
     try {
         // [Shopping Window Restriction] 
-        // Append "쇼핑윈도" to enforce searching within Naver Shopping Window (Fresh Food/Direct).
-        // This usually returns high-quality, direct-from-farm items.
-        const query = encodeURIComponent(queryName + " 쇼핑윈도");
+        // Append "푸드윈도 산지직송" to enforce searching within Naver Food Window (Fresh Food/Direct).
+        // "쇼핑윈도" is too broad; "푸드윈도 산지직송" specifically targets fresh ingredients.
+        const query = encodeURIComponent(queryName + " 푸드윈도 산지직송");
         // [Key Improvement]: Use sort='sim' (Relevance/Accuracy) instead of 'asc' (Lowest Price)
         // 'asc' often returns irrelevant cheap items (hooks, scales) for generic queries like "Mu".
         // 'sim' returns relevant items first (like "Radish").
