@@ -24,6 +24,16 @@ export function getIngredientIcon(name: string): string {
     return "📦";
 }
 
+export function formatIngredientName(name: string): string {
+    if (!name.includes(",")) return name;
+
+    const parts = name.split(",").map(s => s.trim());
+    const main = parts[0];
+    const details = parts.slice(1).join(", ");
+
+    return `${main}(${details})`;
+}
+
 export function formatUnit(unit: string): string {
     return unit.toLowerCase();
 }

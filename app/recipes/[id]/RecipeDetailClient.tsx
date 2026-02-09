@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Plus, Trash2, Check, X as CloseIcon, Wand2, Loader2, ChefHat, Camera, RotateCcw } from "lucide-react";
+import { Trash2, Plus, Minus, ChefHat, Scale, Camera, ImagePlus, RotateCcw, X as CloseIcon, Loader2, Square, CheckSquare, Wand2, ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { formatIngredientName } from "@/app/lib/utils";
 import AddRecipeIngredientModal from "@/app/components/AddRecipeIngredientModal";
 import RecipeMarginAnalysis from "@/app/components/RecipeMarginAnalysis";
 import { deleteRecipe, deleteRecipeIngredient, updateRecipeIngredientAmount, applyPresetToRecipe, updateRecipe, deleteRecipeIngredients, updateRecipeImage, deleteRecipeImage } from "@/app/recipes/actions";
@@ -459,8 +461,8 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                             <div
                                 onClick={toggleSelectAll}
                                 className={`w-5 h-5 rounded-md border-2 cursor-pointer flex items-center justify-center transition-all ${selectedIds.length === recipeIngredients.length && recipeIngredients.length > 0
-                                        ? "bg-blue-600 border-blue-600"
-                                        : "border-gray-300 hover:border-blue-400 bg-white"
+                                    ? "bg-blue-600 border-blue-600"
+                                    : "border-gray-300 hover:border-blue-400 bg-white"
                                     }`}
                                 title="전체 선택"
                             >
@@ -523,7 +525,9 @@ export default function RecipeDetailClient({ recipe, ingredients, priceMap, onDa
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-900 flex items-center gap-1.5">
-                                                    {item.ingredient.name}
+                                                    <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                        {formatIngredientName(item.ingredient.name)}
+                                                    </div>
                                                 </p>
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
                                                     AVG: {item.avgPrice.toLocaleString()}원/{item.ingredient.unit.toLowerCase()}

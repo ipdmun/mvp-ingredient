@@ -515,3 +515,29 @@ export async function deleteRecipeImage(recipeId: number) {
         return { success: false, error: "이미지 삭제 오류: " + err.message };
     }
 }
+
+export async function regenerateRecipeImage(recipeId: number) {
+    const userId = await getSafeUserId();
+    if (!userId) return { success: false, error: "세션 만료" };
+
+    try {
+        const recipe = await prisma.recipe.findFirst({ where: { id: recipeId, userId } });
+        if (!recipe) return { success: false, error: "권한 없음" };
+
+        // Increment seed to force new image generation
+        await prisma.recipe.update({
+            where: { id: recipeId },
+            data: {
+                imageSeed: { increment: 1 },
+                imageUrl: null // Clear custom image if any, to fallback to AI with new seed
+            }
+        });
+
+        revalidatePath(`/recipes/${recipeId}`);
+        revalidatePath("/recipes");
+        return { success: true };
+    } catch (err: any) {
+        console.error("[RegenerateRecipeImage] FAILED:", err);
+        return { success: false, error: "이미지 재생성 오류: " + err.message };
+    }
+}

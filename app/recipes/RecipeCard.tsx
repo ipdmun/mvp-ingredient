@@ -2,9 +2,9 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { ChefHat, ArrowRight, Pencil, Check, X, Camera, Loader2, ImagePlus, RotateCcw } from "lucide-react";
+import { ChefHat, ArrowRight, Pencil, Check, X, Camera, Loader2, ImagePlus, RotateCcw, RefreshCw } from "lucide-react";
 import DeleteRecipeButton from "@/app/components/DeleteRecipeButton";
-import { updateRecipe, updateRecipeImage, deleteRecipeImage } from "@/app/recipes/actions";
+import { updateRecipe, updateRecipeImage, deleteRecipeImage, regenerateRecipeImage } from "@/app/recipes/actions";
 
 interface RecipeCardProps {
     recipe: any;
@@ -20,33 +20,23 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
     const [isUploading, setIsUploading] = useState(false);
 
     // Determine Display URL
-    // Priority: 1. DB-stored ImageUrl (User uploaded or Preset) -> 2. AI Prompt -> 3. Fallback
-    // Wait, the original logic was: Prompt -> ImageUrl -> Fallback.
-    // But if user Uploads an image, we want that to take precedence.
-    // In `updateRecipeImage`, we clear `illustrationPrompt` if user uploads.
-    // So the logic holds: check Prompt (if exists) -> ImageUrl -> Fallback.
-    // But if `illustrationPrompt` exists, it generates.
-
-    // Let's refine: If `imageUrl` is set AND `illustrationPrompt` is null, use `imageUrl`.
-    // If `illustrationPrompt` exists, use AI.
-    // But wait, if user uploads, we cleared `illustrationPrompt`. So it works.
-
     const prompt = recipe.illustrationPrompt;
     const imageUrl = recipe.imageUrl;
+    const seed = recipe.id + (recipe.imageSeed || 0); // Dynamic Seed
     const fallbackUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800";
 
     let displayUrl = fallbackUrl;
     let isAi = false;
 
     if (prompt) {
-        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`;
+        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&nologo=true&model=flux&seed=${seed}`;
         isAi = true;
     } else if (imageUrl) {
         displayUrl = imageUrl;
     } else {
         // Fallback generic AI
         const genericPrompt = `${recipe.name} delicious korean food illustration art high quality`;
-        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${recipe.id}`;
+        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${seed}`;
         isAi = true;
     }
 
@@ -99,11 +89,29 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
         }
     };
 
+    const handleRegenerate = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setIsImageLoading(true);
+        try {
+            const res = await regenerateRecipeImage(recipe.id);
+            if (res.success) {
+                onEditSuccess();
+            } else {
+                alert(res.error || "이미지 재생성 실패");
+                setIsImageLoading(false);
+            }
+        } catch (error) {
+            console.error(error);
+            setIsImageLoading(false);
+        }
+    };
+
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Check size (e.g. 5MB limit)
         if (file.size > 5 * 1024 * 1024) {
             alert("이미지 크기는 5MB 이하여야 합니다.");
             return;
@@ -111,15 +119,14 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
 
         setIsUploading(true);
         try {
-            // Convert to Base64
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64 = reader.result as string;
                 const res = await updateRecipeImage(recipe.id, base64);
                 if (res.success) {
-                    onEditSuccess(); // Refresh list to show new image
-                    setIsImageLoading(true); // Reset loading state for new image
+                    onEditSuccess();
+                    setIsImageLoading(true);
                 } else {
                     alert(res.error || "이미지 업로드 실패");
                 }
@@ -168,7 +175,7 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
                     {/* Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
 
-                    {/* Image Edit Button (Visible on hover or edit mode) */}
+                    {/* Image Edit Button (Camera) */}
                     <div
                         onClick={(e) => {
                             e.preventDefault();
@@ -176,7 +183,7 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
                             fileInputRef.current?.click();
                         }}
                         className="absolute top-3 left-3 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer transition-opacity opacity-100 md:opacity-0 md:group-hover/image:opacity-100 z-20 backdrop-blur-sm"
-                        title="이미지 변경"
+                        title="이미지 변경 (업로드)"
                     >
                         <Camera className="h-4 w-4" />
                         <input
@@ -189,18 +196,24 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
                         />
                     </div>
 
-                    {/* Revert Image Button (Only if custom image matches displayUrl OR recipe.imageUrl exists) */
-                        /* Note: If recipe.imageUrl exists, displayUrl uses it (unless prompt exists, but prompt is cleared on upload). */
-                        /* So if recipe.imageUrl is truthy, we show this button. */
-                        recipe.imageUrl && (
-                            <div
-                                onClick={handleImageDelete}
-                                className="absolute top-3 left-14 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer transition-opacity opacity-100 md:opacity-0 md:group-hover/image:opacity-100 z-20 backdrop-blur-sm"
-                                title="기본(AI) 이미지로 복원"
-                            >
-                                <RotateCcw className="h-4 w-4" />
-                            </div>
-                        )}
+                    {/* Action Button: Revert (if Custom) OR Regenerate (if AI) */}
+                    {recipe.imageUrl ? (
+                        <div
+                            onClick={handleImageDelete}
+                            className="absolute top-3 left-14 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer transition-opacity opacity-100 md:opacity-0 md:group-hover/image:opacity-100 z-20 backdrop-blur-sm"
+                            title="기본(AI) 이미지로 복원"
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                        </div>
+                    ) : (
+                        <div
+                            onClick={handleRegenerate}
+                            className="absolute top-3 left-14 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 cursor-pointer transition-opacity opacity-100 md:opacity-0 md:group-hover/image:opacity-100 z-20 backdrop-blur-sm"
+                            title="AI 이미지 다시 그리기"
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                        </div>
+                    )}
 
                     <div className="absolute bottom-4 left-4 right-4 text-white z-20">
                         {isEditing ? (

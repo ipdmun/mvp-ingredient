@@ -56,45 +56,47 @@ export async function savePriceLogic(userId: string, ingredientId: number, data:
     unit: string;
     source: string;
     marketData?: any; // Add optional marketData
+    type?: string; // New field
 }) {
-    // 1. 해당 재료의 이번 달 기존 최저가 확인
+    // 1. 해당 재료의 이번 달 기존 최저가 확인 (PURCHASE type only)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const existingPrices = await prisma.ingredientPrice.findMany({
-        where: {
-            ingredientId,
-            recordedAt: { gte: startOfMonth },
-        },
-    });
+    const checkType = data.type || "PURCHASE";
 
-    const currentLowestPrice = existingPrices.length > 0
-        ? Math.min(...existingPrices.map((p: any) => p.price))
-        : null;
+    // Only verify "lowest price" logic for PURCHASE type
+    let currentLowestPrice = null;
+    if (checkType === "PURCHASE") {
+        const existingPrices = await prisma.ingredientPrice.findMany({
+            where: {
+                ingredientId,
+                type: "PURCHASE",
+                recordedAt: { gte: startOfMonth },
+            },
+        });
+        currentLowestPrice = existingPrices.length > 0
+            ? Math.min(...existingPrices.map((p: any) => p.price))
+            : null;
+    }
 
     // 2. 새 가격 추가
     await prisma.ingredientPrice.create({
         data: {
             ingredientId,
             price: data.price,
-            // @ts-ignore
             totalPrice: data.totalPrice,
-            // @ts-ignore
             amount: data.amount,
             unit: data.unit,
             source: data.source,
-            marketData: data.marketData ?? undefined, // Save to DB
+            marketData: data.marketData ?? undefined,
+            type: checkType,
         },
     });
 
-    // 3. 최저가 갱신 확인 및 알림 생성 (사용자 본인 확인)
-    if (currentLowestPrice !== null && data.price < currentLowestPrice) {
-        const ingredient = await prisma.ingredient.findUnique({
-            where: { id: ingredientId },
-        });
-
+    // 3. 최저가 갱신 확인 및 알림 (PURCHASE type only)
+    if (checkType === "PURCHASE" && currentLowestPrice !== null && data.price < currentLowestPrice) {
+        const ingredient = await prisma.ingredient.findUnique({ where: { id: ingredientId } });
         if (ingredient && (ingredient as any).userId === userId) {
-            // @ts-ignore
             await prisma.notification.create({
                 data: {
                     userId,

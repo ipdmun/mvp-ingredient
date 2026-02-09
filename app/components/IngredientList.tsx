@@ -3,9 +3,10 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X } from "lucide-react";
-import { getIngredientIcon, convertPriceForDisplay } from "@/app/lib/utils";
+import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X, TrendingUp } from "lucide-react";
+import { getIngredientIcon, convertPriceForDisplay, formatIngredientName } from "@/app/lib/utils";
 import { deleteIngredient, refreshIngredientPrice, bulkDeleteIngredients } from "@/app/ingredients/actions";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 type Price = {
     price: number;
@@ -15,6 +16,7 @@ type Price = {
     amount?: number;
     marketData?: any; // JSON
     unit: string;
+    type?: string;
 };
 
 type Ingredient = {
@@ -44,6 +46,9 @@ export default function IngredientList({ initialIngredients }: Props) {
 
     // Feature: Candidate Selection (Up/Down)
     const [selectedCandidates, setSelectedCandidates] = useState<Record<number, number>>({});
+
+    // Feature: Price History Graph
+    const [expandedGraphId, setExpandedGraphId] = useState<number | null>(null);
 
     const getPriceAnalysis = (name: string, prices: Price[]) => {
         const latestPriceObj = prices[0];
@@ -323,7 +328,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                         </div>
                                         <div className="min-w-0">
                                             <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate">
-                                                {item.name}
+                                                {formatIngredientName(item.name)}
                                             </div>
                                             {/* Unit display removed as per user request */}
                                         </div>
@@ -407,20 +412,20 @@ export default function IngredientList({ initialIngredients }: Props) {
 
                                                                 {/* Up/Down Buttons */}
                                                                 {candidates.length > 1 && (
-                                                                    <div className="flex flex-col ml-1">
+                                                                    <div className="flex flex-col ml-2 gap-0.5">
                                                                         <button
                                                                             onClick={handlePrev}
-                                                                            disabled={selectedIndex === 0}
-                                                                            className="p-0.5 hover:bg-blue-200 rounded disabled:opacity-30"
+                                                                            disabled={selectedIndex <= 0}
+                                                                            className="flex items-center justify-center w-6 h-5 rounded hover:bg-gray-200 text-gray-500 disabled:opacity-20 transition-colors"
                                                                         >
-                                                                            <ArrowRight className="h-2 w-2 -rotate-90" />
+                                                                            <span className="text-[10px] scale-x-125">▲</span>
                                                                         </button>
                                                                         <button
                                                                             onClick={handleNext}
-                                                                            disabled={selectedIndex === candidates.length - 1}
-                                                                            className="p-0.5 hover:bg-blue-200 rounded disabled:opacity-30"
+                                                                            disabled={selectedIndex >= candidates.length - 1}
+                                                                            className="flex items-center justify-center w-6 h-5 rounded hover:bg-gray-200 text-gray-500 disabled:opacity-20 transition-colors"
                                                                         >
-                                                                            <ArrowRight className="h-2 w-2 rotate-90" />
+                                                                            <span className="text-[10px] scale-x-125">▼</span>
                                                                         </button>
                                                                     </div>
                                                                 )}
@@ -491,31 +496,90 @@ export default function IngredientList({ initialIngredients }: Props) {
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex items-center justify-between border-t border-gray-50 pt-4">
-                                <Link
-                                    href={`/ingredients/${item.id}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
-                                >
-                                    추이 분석 <ArrowRight className="h-3.5 w-3.5" />
-                                </Link>
+                            <div className="mt-6 border-t border-gray-50 pt-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setExpandedGraphId(expandedGraphId === item.id ? null : item.id); }}
+                                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${expandedGraphId === item.id ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+                                        >
+                                            <TrendingUp className="h-3.5 w-3.5" />
+                                            시세
+                                        </button>
+                                        <Link
+                                            href={`/ingredients/${item.id}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                                        >
+                                            상세 <ArrowRight className="h-3.5 w-3.5" />
+                                        </Link>
+                                    </div>
 
-                                <form
-                                    onClick={(e) => e.stopPropagation()}
-                                    action={async () => {
-                                        if (confirm("정말 이 재료를 삭제하시겠습니까?")) {
-                                            await deleteIngredient(item.id);
-                                        }
-                                    }}
-                                >
-                                    <button
-                                        type="submit"
-                                        className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                                        aria-label="재료 삭제"
+                                    <form
+                                        onClick={(e) => e.stopPropagation()}
+                                        action={async () => {
+                                            if (confirm("정말 이 재료를 삭제하시겠습니까?")) {
+                                                await deleteIngredient(item.id);
+                                            }
+                                        }}
                                     >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </form>
+                                        <button
+                                            type="submit"
+                                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                                            aria-label="재료 삭제"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </form>
+                                </div>
+
+                                {expandedGraphId === item.id && (
+                                    <div className="mt-4 h-48 w-full bg-gray-50 rounded-xl p-2 border border-blue-100 animate-in slide-in-from-top-2 fade-in">
+                                        <div className="flex items-center justify-between mb-2 px-2">
+                                            <span className="text-xs font-bold text-gray-500">가격 추이 (최근 30일)</span>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setExpandedGraphId(null); }}
+                                                className="text-gray-400 hover:text-gray-600"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <ResponsiveContainer width="100%" height="80%">
+                                            <LineChart data={(() => {
+                                                const dataMap = new Map();
+                                                const sortedPrices = [...item.prices].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+
+                                                const thirtyDaysAgo = new Date();
+                                                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                                                sortedPrices.forEach(p => {
+                                                    if (new Date(p.recordedAt) < thirtyDaysAgo) return;
+                                                    const dateStr = new Date(p.recordedAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+
+                                                    if (!dataMap.has(dateStr)) {
+                                                        dataMap.set(dateStr, { date: dateStr, myPrice: null, marketPrice: null });
+                                                    }
+                                                    const entry = dataMap.get(dateStr);
+                                                    if ((p as any).type === 'PURCHASE' || !(p as any).type) entry.myPrice = p.price;
+                                                    if ((p as any).type === 'MARKET') entry.marketPrice = p.price;
+                                                });
+                                                return Array.from(dataMap.values());
+                                            })()}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                                <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                                <YAxis hide domain={['auto', 'auto']} />
+                                                <RechartsTooltip
+                                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                    labelStyle={{ fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}
+                                                    itemStyle={{ fontSize: '12px', padding: 0 }}
+                                                />
+                                                <Legend iconSize={8} wrapperStyle={{ fontSize: '11px', paddingTop: '0px' }} />
+                                                <Line type="monotone" dataKey="myPrice" name="내 구매가" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls />
+                                                <Line type="monotone" dataKey="marketPrice" name="시장 최저가" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );
