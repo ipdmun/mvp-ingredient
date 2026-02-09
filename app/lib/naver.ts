@@ -254,10 +254,6 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     // If we matched specific quantity (e.g. "Onion 15kg"), Naver result is Total Price for 15kg.
     // If we matched fallback (e.g. "Onion"), Naver result is likely Cheapest Unit Price (1kg or 1ea).
 
-    import { getStandardWeight } from "./recipeUtils";
-
-    // ... (existing code)
-
     if (matchType === 'specific') {
         const totalDiff = price - marketPrice;
         // Normalize to Unit Diff so downstream logic works consistently

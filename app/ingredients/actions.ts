@@ -145,7 +145,8 @@ export async function createIngredient(formData: FormData) {
             where: { id: ingredientId },
             data: {
                 isDeleted: false,
-                unit: unit // Update unit in case it changed
+                unit: unit, // Update unit in case it changed
+                userId: (session.user as any).id as string // Ensure userId is passed if needed, though prisma handles it usually on unique
             }
         });
     } else {
