@@ -39,12 +39,18 @@ function calculateNormalizedPrice(price: number, amount: number, unit: string, i
         normalizedAmount = amount * 600;
     } else if (isPieceUnit) {
         // [Piece-to-Weight Logic]
-        // If the unit is piece-based, convert to grams based on standard weight
-        const std = getStandardWeight(ingredientName);
+        // Normalize name for matching (e.g. "파, 대파" -> "대파")
+        const cleanName = ingredientName.trim();
+        const std = getStandardWeight(cleanName);
+
+        console.log(`[Normalization] ${cleanName}: Unit=${unit}, BasePrice=${unitPrice}, StdWeight=${std?.weight}g`);
+
         if (std) {
             unitPrice = unitPrice / std.weight; // Price per piece -> Price per g
             normalizedUnit = 'g';
             normalizedAmount = amount * std.weight;
+        } else {
+            console.warn(`[Normalization] Failed to find standard weight for: ${cleanName}`);
         }
     }
 

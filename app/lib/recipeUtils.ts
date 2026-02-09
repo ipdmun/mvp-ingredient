@@ -5,14 +5,14 @@ export interface IngredientItem {
 }
 
 const UNIT_STANDARDS: Record<string, number> = {
-    // Tofu (1 block = 350g approx)
-    "두부": 350,
+    // Tofu (1 block = 300g approx default)
+    "두부": 300,
     "순두부": 350,
     "연두부": 250,
     // Veggies (1 piece approx weight in g)
-    "양파": 230, // User request: 230g
-    "대파": 80, // 1 stalk
-    "쪽파": 10,
+    "양파": 230,
+    "대파": 500, // 1 bundle standard (approx 400-600g)
+    "쪽파": 200, // 1 bundle (small)
     "마늘": 5, // 1 clove
     "다진마늘": 15, // 1 tbsp
     "간마늘": 15,
@@ -77,10 +77,19 @@ const UNIT_STANDARDS: Record<string, number> = {
  * Returns standard weight/amount for a given ingredient name.
  */
 export function getStandardWeight(name: string): { weight: number; unit: string } | null {
-    const key = Object.keys(UNIT_STANDARDS).find(k => name.includes(k));
-    if (!key) return null;
+    // Normalize name for matching (Remove spaces, commas, etc.)
+    const normalizedName = name.replace(/[\s,()]/g, "");
 
-    // Default to 'g' for these standards
+    // Sort keys to match specific names (e.g. "대파") before generic ones (e.g. "파")
+    const keys = Object.keys(UNIT_STANDARDS).sort((a, b) => b.length - a.length);
+    const key = keys.find(k => normalizedName.includes(k));
+
+    if (!key) {
+        // Fallback for "Green Onion" if only "파" is found in complex string
+        if (normalizedName.includes("파")) return { weight: 500, unit: 'g' };
+        return null;
+    }
+
     return { weight: UNIT_STANDARDS[key], unit: 'g' };
 }
 
