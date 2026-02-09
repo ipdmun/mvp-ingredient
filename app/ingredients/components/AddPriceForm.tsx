@@ -142,8 +142,7 @@ export default function AddPriceForm({ ingredientId, unit }: Props) {
                             name="unit"
                             defaultValue={unit.toLowerCase()}
                             required
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm border-gray-100 bg-gray-50 text-gray-500"
-                            readOnly
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
                         />
                     </div>
                 </div>
