@@ -535,10 +535,17 @@ export default function IngredientList({ initialIngredients }: Props) {
                                         action={async () => {
                                             if (confirm("정말 이 재료를 삭제하시겠습니까?")) {
                                                 // Optimistic Update
+                                                const previousIngredients = [...ingredients];
                                                 setIngredients(prev => prev.filter(i => i.id !== item.id));
 
-                                                await deleteIngredient(item.id);
-                                                router.refresh(); // Sync with server
+                                                try {
+                                                    await deleteIngredient(item.id);
+                                                    router.refresh();
+                                                } catch (e) {
+                                                    console.error("Delete failed", e);
+                                                    alert("삭제에 실패했습니다.");
+                                                    setIngredients(previousIngredients); // Revert
+                                                }
                                             }
                                         }}
                                     >
