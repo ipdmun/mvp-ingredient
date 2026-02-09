@@ -184,6 +184,7 @@ export async function deleteIngredient(id: number) {
         data: { isDeleted: true }
     });
 
+    revalidatePath("/ingredients");
     revalidatePath("/");
 }
 

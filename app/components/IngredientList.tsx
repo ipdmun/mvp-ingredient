@@ -151,6 +151,7 @@ export default function IngredientList({ initialIngredients }: Props) {
         try {
             await bulkDeleteIngredients(selectedIds);
             setSelectedIds([]);
+            router.refresh(); // Force refresh
         } catch (error) {
             alert("삭제 중 오류가 발생했습니다.");
             console.error(error);
@@ -520,6 +521,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                         action={async () => {
                                             if (confirm("정말 이 재료를 삭제하시겠습니까?")) {
                                                 await deleteIngredient(item.id);
+                                                router.refresh(); // Force refresh to update UI
                                             }
                                         }}
                                     >
