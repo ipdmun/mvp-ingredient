@@ -55,6 +55,14 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 // 2. Keyword Exclusion
                 if (EXCLUDED_KEYWORDS.some(keyword => title.includes(keyword))) continue;
 
+                // [Exclusion: Price Comparison / Catalog Bundles]
+                // "네이버" mallName usually indicates a catalog page (price comparison).
+                // productType '1' -> General Product (Mall Item). '2' -> Used, '3' -> Rental, etc.
+                // We want direct mall items only.
+                if (item.mallName === "네이버" || (item.productType && String(item.productType) !== "1")) {
+                    continue;
+                }
+
                 // 3. Category Check
                 // MUST contain food-related keywords in the category path.
                 // Strict check: If it contains "주방용품", "가전", "생활", it's risky unless "식품" is explicitly there.
