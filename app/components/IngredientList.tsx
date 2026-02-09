@@ -1,18 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-// ... (imports)
-
-// ...
-
-
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X, TrendingUp } from "lucide-react";
 import { getIngredientIcon, convertPriceForDisplay, formatIngredientName } from "@/app/lib/utils";
 import { deleteIngredient, refreshIngredientPrice, bulkDeleteIngredients } from "@/app/ingredients/actions";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
-
 
 type Price = {
     price: number;
@@ -209,20 +203,6 @@ export default function IngredientList({ initialIngredients }: Props) {
         return `${amount}${unit}`;
     };
 
-    // Helper to check if a link is generic (Main Page)
-    const isGenericLink = (link?: string) => {
-        if (!link) return true;
-        const generic = [
-            "https://www.coupang.com",
-            "https://www.kurly.com",
-            "https://front.homeplus.co.kr",
-            "https://www.ssg.com",
-            "https://www.lotteon.com",
-            "https://www.garak.co.kr"
-        ];
-        return generic.some(g => link === g || link === g + "/");
-    };
-
     return (
         <div className="space-y-6">
             {/* Search and Sort Toolbar */}
@@ -266,7 +246,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
-                    <div className="relative w-full sm:w-auto max-w-xs">
+                    <div className="relative w-full sm:w-auto min-w-[12rem]">
                         <input
                             type="text"
                             placeholder="재료 검색..."
@@ -351,7 +331,7 @@ export default function IngredientList({ initialIngredients }: Props) {
 
                             <div className="space-y-4 pl-8"> {/* Add padding left for checkbox space */}
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-inner border border-blue-100/50 overflow-hidden shrink-0">
                                             {getIngredientIcon(item.name).startsWith("/") ? (
                                                 <img src={getIngredientIcon(item.name)} alt={item.name} className="h-full w-full object-contain p-1 mix-blend-multiply" />
@@ -359,16 +339,15 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 getIngredientIcon(item.name)
                                             )}
                                         </div>
-                                        <div className="min-w-0">
-                                            <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate" title={formatIngredientName(item.name)}>
                                                 {formatIngredientName(item.name)}
                                             </div>
-                                            {/* Unit display removed as per user request */}
                                         </div>
                                     </div>
-                                    <div className="text-right shrink-0">
+                                    <div className="text-right shrink-0 min-w-[100px]">
                                         <div className="flex flex-col items-end">
-                                            <p className="text-xl font-black text-gray-900">
+                                            <p className="text-lg sm:text-xl font-black text-gray-900 truncate w-full">
                                                 {latest > 0
                                                     ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', displayUnit)).toLocaleString()}원/${displayUnit}`
                                                     : "기록 없음"
@@ -415,9 +394,10 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 const currentCandidate = candidates[selectedIndex] || candidates[0];
 
                                                 // Re-calculate Diff for display
-                                                // Original Diff = UserPrice - BestPrice
-                                                // UserPrice = BestPrice + OriginalDiff
-                                                const userTotalEstimated = marketData.price + marketData.diff;
+                                                // marketData.diff is unit diff (e.g. per gram)
+                                                // To get total diff, we need user's normalized amount
+                                                const userAmount = item.prices[0]?.amount || 1;
+                                                const userTotalEstimated = marketData.price + (marketData.diff * userAmount);
                                                 const currentDiff = userTotalEstimated - currentCandidate.price;
 
                                                 const handlePrev = (e: React.MouseEvent) => {
@@ -445,45 +425,45 @@ export default function IngredientList({ initialIngredients }: Props) {
 
                                                                 {/* Up/Down Buttons */}
                                                                 {candidates.length > 1 && (
-                                                                    <div className="flex flex-col ml-2 gap-0.5">
+                                                                    <div className="flex flex-col ml-1 gap-0.5">
                                                                         <button
                                                                             onClick={handlePrev}
                                                                             disabled={selectedIndex <= 0}
-                                                                            className="flex items-center justify-center w-6 h-5 rounded hover:bg-gray-200 text-gray-500 disabled:opacity-20 transition-colors"
+                                                                            className="flex items-center justify-center w-5 h-4 rounded hover:bg-gray-200 text-gray-500 disabled:opacity-20 transition-colors"
                                                                         >
-                                                                            <span className="text-[10px] scale-x-125">▲</span>
+                                                                            <span className="text-[8px] scale-x-125">▲</span>
                                                                         </button>
                                                                         <button
                                                                             onClick={handleNext}
                                                                             disabled={selectedIndex >= candidates.length - 1}
-                                                                            className="flex items-center justify-center w-6 h-5 rounded hover:bg-gray-200 text-gray-500 disabled:opacity-20 transition-colors"
+                                                                            className="flex items-center justify-center w-5 h-4 rounded hover:bg-gray-200 text-gray-500 disabled:opacity-20 transition-colors"
                                                                         >
-                                                                            <span className="text-[10px] scale-x-125">▼</span>
+                                                                            <span className="text-[8px] scale-x-125">▼</span>
                                                                         </button>
                                                                     </div>
                                                                 )}
                                                                 {candidates.length > 1 && (
-                                                                    <span className="text-[9px] text-gray-400 ml-0.5">
-                                                                        {selectedIndex + 1}/{candidates.length}
+                                                                    <span className="text-[9px] text-gray-400 ml-1 font-medium bg-gray-100 px-1.5 py-0.5 rounded italic">
+                                                                        {selectedIndex + 1} / {candidates.length}
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className={`text-xs font-black px-2 py-1 rounded-md shadow-sm ${currentDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                                                {currentDiff > 0 ? `+${currentDiff.toLocaleString()}` : `${currentDiff.toLocaleString()}`}
+                                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap ${currentDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                                {currentDiff > 0 ? `+${Math.round(currentDiff).toLocaleString()}` : `${Math.round(currentDiff).toLocaleString()}`}
                                                             </span>
                                                         </div>
 
-                                                        <div className="flex items-baseline justify-between">
+                                                        <div className="flex items-baseline justify-between gap-2 overflow-hidden">
                                                             <a
                                                                 href={currentCandidate.link}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="text-xs text-blue-500 underline truncate max-w-[60%] hover:text-blue-700 transition-colors"
+                                                                className="text-[11px] text-blue-500 underline truncate flex-1 hover:text-blue-700 transition-colors"
                                                             >
                                                                 {(currentCandidate.source || currentCandidate.cheapestSource || "Unknown").replace("네이버최저가(", "").replace(")", "")}
                                                             </a>
-                                                            <p className="text-lg font-black text-gray-900">
+                                                            <p className="text-lg font-black text-gray-900 shrink-0">
                                                                 {currentCandidate.price.toLocaleString()}원
                                                             </p>
                                                         </div>

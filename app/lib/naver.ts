@@ -255,14 +255,22 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
 
     if (matchType === 'specific') {
         const totalDiff = price - marketPrice;
-        // Normalize to Unit Diff so downstream logic (which usually multiplies by amount) works consistently
+        // Normalize to Unit Diff so downstream logic works consistently
         diff = (amount > 0) ? totalDiff / amount : totalDiff;
     } else {
-        // Fallback Match:
-        // Compare Unit Price (User) vs Unit Price (Naver)
-        // Calculate user's unit price
+        // Fallback Match: 
+        // Naver's price is often total price (e.g. 27,000 for 1kg).
+        // If we don't know the Naver unit, comparing against user price is risky.
+        // For fallback, we compare user's UNIFIED unit price.
         const userUnitPrice = amount > 0 ? price / amount : price;
-        diff = userUnitPrice - marketPrice;
+
+        // Strategy: If Naver price is > 3x user unit price, it's likely a total price.
+        // We skip diff calculation to avoid crazy numbers like -26,900.
+        if (marketPrice > userUnitPrice * 3) {
+            diff = 0; // Skip diff
+        } else {
+            diff = userUnitPrice - marketPrice;
+        }
     }
 
     let status: "BEST" | "GOOD" | "BAD" = "GOOD";
