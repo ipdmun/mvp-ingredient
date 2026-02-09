@@ -7,19 +7,29 @@ export function getIngredientIcon(name: string): string {
     if (n.includes("마늘")) return "🧄"; // Whole Garlic
     if (n.includes("배추") || n.includes("알배기") || n.includes("봄동")) return "/icons/cabbage.png";
     if (n.includes("무") || n.includes("알타리") || n.includes("단무지")) return "/icons/radish.png";
-    if (n.includes("고추") || n.includes("피망")) return "🌶️";
+    if (n.includes("고추") || n.includes("고춧") || n.includes("피망")) return "🌶️";
     if (n.includes("당근")) return "🥕";
     if (n.includes("오이") || n.includes("애호박")) return "🥒";
+    if (n.includes("호박")) return "🎃";
     if (n.includes("토마토") || n.includes("방울")) return "🍅";
+    if (n.includes("양파")) return "🧅";
+    if (n.includes("감자")) return "🥔";
+    if (n.includes("고구마")) return "🍠";
+    if (n.includes("콩나물") || n.includes("숙주")) return "🌱";
     if (n.includes("김치")) return "🥬"; // Kimchi
     if (n.includes("쌀") || n.includes("밥")) return "🍚";
     if (n.includes("고기") || n.includes("돼지") || n.includes("소") || n.includes("한우")) return "🥩";
     if (n.includes("닭") || n.includes("치킨")) return "🍗";
-    if (n.includes("생선") || n.includes("고등어") || n.includes("갈치")) return "🐟";
+    if (n.includes("생선") || n.includes("고등어") || n.includes("갈치") || n.includes("멸치")) return "🐟";
+    if (n.includes("조개") || n.includes("우렁") || n.includes("굴") || n.includes("전복")) return "🦪";
     if (n.includes("우유")) return "🥛";
     if (n.includes("치즈")) return "🧀";
-    if (n.includes("두부")) return "🧊"; // Tofu (Ice Cube looks like Tofu block)
+    if (n.includes("두부")) return "🧊"; // Tofu
     if (n.includes("버섯")) return "🍄";
+    if (n.includes("된장") || n.includes("쌈장") || n.includes("고추장") || n.includes("간장")) return "🏺";
+    if (n.includes("소금") || n.includes("후추") || n.includes("설탕") || n.includes("다시다") || n.includes("조미료")) return "🧂";
+    if (n.includes("물") || n.includes("육수") || n.includes("생수")) return "💧";
+    if (n.includes("기름") || n.includes("식용유") || n.includes("참기름")) return "🫒";
 
     return "📦";
 }
