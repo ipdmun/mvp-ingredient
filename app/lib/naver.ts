@@ -133,13 +133,16 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     // If name is "무", alias it here too just in case (though fetchNaverPrice handles it internally now)
     // But expanding queries logic uses original name.
 
+    // [Fix] Sanitize Name: Remove contents in parentheses (e.g. "호박(애호박, 데친것)" -> "호박")
+    const sanitizedName = name.replace(/\([^)]*\)/g, "").trim();
+
     // If unit is standard weight/volume, prioritize specific search
     // Expanded units to include common market units (Bundle, Net, Box, EA, Head, Tofu count)
     const validUnits = ['kg', 'g', 'L', 'ml', '단', '망', '박스', '개', '포기', '모', '봉'];
     if (amount > 0 && validUnits.includes(unit)) {
-        searchQueries.push(`${name} ${amount}${unit}`);
+        searchQueries.push(`${sanitizedName} ${amount}${unit}`);
     }
-    searchQueries.push(name); // Fallback
+    searchQueries.push(sanitizedName); // Fallback
 
     let marketDataList: { price: number, source: string, link: string }[] | null = null;
     let matchType: 'specific' | 'fallback' = 'fallback';
