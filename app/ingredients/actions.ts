@@ -173,19 +173,24 @@ export async function deleteIngredient(id: number) {
     const session = await getServerSession(authOptions);
     if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
 
-    // Related data must be deleted first
-    // Soft Delete: Keep prices, just mark as deleted
-    // await prisma.ingredientPrice.deleteMany({ where: { ingredientId: id } });
-    await prisma.ingredient.update({
-        where: {
-            id,
-            userId: (session.user as any).id as any,
-        },
-        data: { isDeleted: true }
-    });
+    console.log(`[deleteIngredient] Request for ID: ${id}`);
 
-    revalidatePath("/ingredients");
-    revalidatePath("/");
+    try {
+        await prisma.ingredient.update({
+            where: {
+                id,
+                userId: (session.user as any).id as any,
+            },
+            data: { isDeleted: true }
+        });
+        console.log(`[deleteIngredient] Success: ${id}`);
+
+        revalidatePath("/ingredients", "page");
+        revalidatePath("/", "layout");
+    } catch (error) {
+        console.error(`[deleteIngredient] Error:`, error);
+        throw error;
+    }
 }
 
 export async function bulkDeleteIngredients(ids: number[]) {
@@ -193,28 +198,24 @@ export async function bulkDeleteIngredients(ids: number[]) {
     if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
     const userId = (session.user as any).id;
 
-    // Verify ownership and delete in transaction or batch
-    // We can just use deleteMany with userId check for safety
-    // Soft Delete Batch
-    /*
-    await prisma.ingredientPrice.deleteMany({
-        where: {
-            ingredientId: { in: ids },
-            ingredient: { userId: userId } 
-        }
-    });
-    */
+    console.log(`[bulkDelete] Request for IDs: ${ids.join(', ')}`);
 
-    await prisma.ingredient.updateMany({
-        where: {
-            id: { in: ids },
-            userId: userId
-        },
-        data: { isDeleted: true }
-    });
+    try {
+        const result = await prisma.ingredient.updateMany({
+            where: {
+                id: { in: ids },
+                userId: userId
+            },
+            data: { isDeleted: true }
+        });
+        console.log(`[bulkDelete] Success. Count: ${result.count}`);
 
-    revalidatePath("/ingredients");
-    revalidatePath("/");
+        revalidatePath("/ingredients", "page");
+        revalidatePath("/", "layout");
+    } catch (error) {
+        console.error(`[bulkDelete] Error:`, error);
+        throw error;
+    }
 }
 
 export async function createIngredientPrice(ingredientId: number, formData: FormData) {

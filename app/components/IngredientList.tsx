@@ -530,9 +530,9 @@ export default function IngredientList({ initialIngredients }: Props) {
                                         </Link>
                                     </div>
 
-                                    <form
-                                        onClick={(e) => e.stopPropagation()}
-                                        action={async () => {
+                                    <button
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
                                             if (confirm("정말 이 재료를 삭제하시겠습니까?")) {
                                                 // Optimistic Update
                                                 const previousIngredients = [...ingredients];
@@ -548,15 +548,11 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                 }
                                             }
                                         }}
+                                        className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                                        aria-label="재료 삭제"
                                     >
-                                        <button
-                                            type="submit"
-                                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                                            aria-label="재료 삭제"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </form>
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
                                 </div>
 
                                 {expandedGraphId === item.id && (
