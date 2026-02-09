@@ -17,8 +17,8 @@ type Price = {
     price: number;
     recordedAt: Date;
     source: string;
-    totalPrice?: number;
-    amount?: number;
+    totalPrice?: number | null;
+    amount?: number | null;
     marketData?: any; // JSON
     unit: string;
     type?: string;

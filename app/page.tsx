@@ -24,7 +24,8 @@ export default async function Home() {
     // FIX: Prisma findMany(where: { userId }) is failing in production.
     const ingredients = await prisma.ingredient.findMany({
       where: {
-        userId: cleanUserId // Use cleaned ID
+        userId: cleanUserId, // Use cleaned ID
+        isDeleted: false
       },
       include: {
         prices: {
@@ -69,7 +70,7 @@ export default async function Home() {
               <p className="mt-1 text-sm text-gray-500">위 폼을 사용하여 첫 번째 재료를 추가해보세요.</p>
             </div>
           ) : (
-            <IngredientList initialIngredients={ingredients} />
+            <IngredientList initialIngredients={ingredients as any} />
           )
         }
         <GlobalCameraFab ingredients={ingredients} />

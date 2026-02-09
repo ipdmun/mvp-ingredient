@@ -1,3 +1,4 @@
+export { };
 
 function toFractionString(val: number): string | number {
     if (val >= 0.9 && val <= 1.1) return "1";
