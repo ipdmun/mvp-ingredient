@@ -482,7 +482,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                     </span>
                                                 </div>
                                                 <a
-                                                    href={`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(`${item.name} ${latestPrice && latestPrice.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : ''}`.trim())}`}
+                                                    href={`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(`${item.name.split(/[,(]/)[0].trim()} ${latestPrice && latestPrice.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : ''}`.trim())}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={(e) => e.stopPropagation()}
