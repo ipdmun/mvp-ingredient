@@ -85,8 +85,16 @@ export default function IngredientList({ initialIngredients }: Props) {
         };
     };
 
+    // Local state for Optimistic UI
+    const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
+
+    // Sync with server data if it changes (e.g. after router.refresh)
+    useMemo(() => {
+        setIngredients(initialIngredients);
+    }, [initialIngredients]);
+
     const filteredAndSortedIngredients = useMemo(() => {
-        return initialIngredients
+        return ingredients
             .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
             .sort((a, b) => {
                 let comparison = 0;
@@ -102,7 +110,7 @@ export default function IngredientList({ initialIngredients }: Props) {
 
                 return sortOrder === "asc" ? comparison : -comparison;
             });
-    }, [initialIngredients, searchTerm, sortType, sortOrder]);
+    }, [ingredients, searchTerm, sortType, sortOrder]);
 
     const toggleSort = (type: SortType) => {
         if (sortType === type) {
@@ -147,14 +155,20 @@ export default function IngredientList({ initialIngredients }: Props) {
     const handleBulkDelete = async () => {
         if (!confirm(`선택한 ${selectedIds.length}개의 재료를 정말 삭제하시겠습니까?`)) return;
 
+        // Optimistic Update
+        const idsToDelete = [...selectedIds];
+        setIngredients(prev => prev.filter(item => !idsToDelete.includes(item.id)));
+        setSelectedIds([]);
+
         setIsDeleting(true);
         try {
-            await bulkDeleteIngredients(selectedIds);
-            setSelectedIds([]);
-            router.refresh(); // Force refresh
+            await bulkDeleteIngredients(idsToDelete);
+            router.refresh();
         } catch (error) {
             alert("삭제 중 오류가 발생했습니다.");
             console.error(error);
+            // Revert or refresh on error?
+            router.refresh();
         } finally {
             setIsDeleting(false);
         }
@@ -520,8 +534,11 @@ export default function IngredientList({ initialIngredients }: Props) {
                                         onClick={(e) => e.stopPropagation()}
                                         action={async () => {
                                             if (confirm("정말 이 재료를 삭제하시겠습니까?")) {
+                                                // Optimistic Update
+                                                setIngredients(prev => prev.filter(i => i.id !== item.id));
+
                                                 await deleteIngredient(item.id);
-                                                router.refresh(); // Force refresh to update UI
+                                                router.refresh(); // Sync with server
                                             }
                                         }}
                                     >
