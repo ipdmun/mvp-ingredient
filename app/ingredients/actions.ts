@@ -174,12 +174,14 @@ export async function deleteIngredient(id: number) {
     if (!session || !(session.user as any)?.id) throw new Error("Unauthorized");
 
     // Related data must be deleted first
-    await prisma.ingredientPrice.deleteMany({ where: { ingredientId: id } });
-    await prisma.ingredient.delete({
+    // Soft Delete: Keep prices, just mark as deleted
+    // await prisma.ingredientPrice.deleteMany({ where: { ingredientId: id } });
+    await prisma.ingredient.update({
         where: {
             id,
             userId: (session.user as any).id as any,
         },
+        data: { isDeleted: true }
     });
 
     revalidatePath("/");
@@ -192,18 +194,22 @@ export async function bulkDeleteIngredients(ids: number[]) {
 
     // Verify ownership and delete in transaction or batch
     // We can just use deleteMany with userId check for safety
+    // Soft Delete Batch
+    /*
     await prisma.ingredientPrice.deleteMany({
         where: {
             ingredientId: { in: ids },
-            ingredient: { userId: userId } // Ensure we only delete prices for user's ingredients
+            ingredient: { userId: userId } 
         }
     });
+    */
 
-    await prisma.ingredient.deleteMany({
+    await prisma.ingredient.updateMany({
         where: {
             id: { in: ids },
             userId: userId
-        }
+        },
+        data: { isDeleted: true }
     });
 
     revalidatePath("/ingredients");
@@ -263,7 +269,10 @@ export async function getIngredients() {
     console.log(`[getIngredients] Fetching for user: ${userId}`);
 
     return prisma.ingredient.findMany({
-        where: { userId },
+        where: {
+            userId,
+            isDeleted: false
+        },
         orderBy: { createdAt: "desc" },
     });
 }
