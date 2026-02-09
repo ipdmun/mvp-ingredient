@@ -29,10 +29,7 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
     const BEVERAGE_KEYWORDS = ["차", "즙", "주스", "에이드", "라떼", "음료", "드링크", "수"];
 
     try {
-        // [Shopping Window Restriction] 
-        // Append "푸드윈도 산지직송" to enforce searching within Naver Food Window (Fresh Food/Direct).
-        // "쇼핑윈도" is too broad; "푸드윈도 산지직송" specifically targets fresh ingredients.
-        const query = encodeURIComponent(queryName + " 푸드윈도 산지직송");
+        const query = encodeURIComponent(queryName);
         // [Key Improvement]: Use sort='sim' (Relevance/Accuracy) instead of 'asc' (Lowest Price)
         // 'asc' often returns irrelevant cheap items (hooks, scales) for generic queries like "Mu".
         // 'sim' returns relevant items first (like "Radish").
