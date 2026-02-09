@@ -27,10 +27,28 @@ const UNIT_STANDARDS: Record<string, number> = {
     "당근": 170, // User request: 170g
     "감자": 200, // User request: 200g
     "고구마": 180, // User request: 180g
-    "무": 1000, // 1 whole radish is heavy
-    "배추": 2000, // 1 whole cabbage
+    "무": 1200, // Medium radish
+    "배추": 2000, // Medium napa cabbage
     "알배기": 500,
     "양배추": 1500,
+    "양송이": 20,
+    "새송이": 90,
+    "표고": 20,
+    "팽이": 150, // 1 pack
+    "느타리": 200, // 1 pack
+    "브로콜리": 300,
+    "토마토": 200,
+    "방울토마토": 15,
+    "계란": 50, // Large egg (standard)
+    "사과": 250,
+    "배": 600, // Korean pear is large
+    "레몬": 100,
+    "라임": 60,
+    "오렌지": 200,
+    "생강": 25,
+    "청경채": 50, // 1 head
+    "깻잎": 2, // 1 leaf
+    "상추": 5, // 1 leaf
     // Seasonings (1 tbsp = 15g/ml approx)
     "간장": 15,
     "고추장": 15,
