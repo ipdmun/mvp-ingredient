@@ -108,7 +108,12 @@ export async function createRecipe(data: {
                     let ingredient = await prisma.ingredient.findFirst({ where: { name: item.name, userId } });
                     if (!ingredient) {
                         ingredient = await prisma.ingredient.create({
-                            data: { name: item.name, unit: item.unit, userId }
+                            data: { name: item.name, unit: item.unit, userId, isDeleted: false }
+                        });
+                    } else if (ingredient.isDeleted) {
+                        ingredient = await prisma.ingredient.update({
+                            where: { id: ingredient.id },
+                            data: { isDeleted: false }
                         });
                     }
 
@@ -243,8 +248,15 @@ export async function createAndAddRecipeIngredient(
                 data: {
                     name: name.trim(),
                     unit: unit.trim().toLowerCase(), // Enforce Lowercase
-                    userId
+                    userId,
+                    isDeleted: false
                 }
+            });
+        } else if (ingredient.isDeleted) {
+            console.log(`[CreateAndAddRI] Reviving ingredient: ${name}`);
+            ingredient = await prisma.ingredient.update({
+                where: { id: ingredient.id },
+                data: { isDeleted: false, unit: unit.trim().toLowerCase() }
             });
         }
 
@@ -335,7 +347,12 @@ export async function applyPresetToRecipe(recipeId: number) {
                 let ingredient = await prisma.ingredient.findFirst({ where: { name: item.name, userId } });
                 if (!ingredient) {
                     ingredient = await prisma.ingredient.create({
-                        data: { name: item.name, unit: item.unit, userId }
+                        data: { name: item.name, unit: item.unit, userId, isDeleted: false }
+                    });
+                } else if (ingredient.isDeleted) {
+                    ingredient = await prisma.ingredient.update({
+                        where: { id: ingredient.id },
+                        data: { isDeleted: false }
                     });
                 }
 
