@@ -19,8 +19,14 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
         // Non-Food Items (Toys, Education, Stationery, Masks) - Fix for "Pork Mask" & "Cabbage Toy"
         "마스크", "우드", "팬시", "문구", "완구", "교구", "학습", "교재", "MDF", "부자재", "만들기", "장식", "가짜", "모형", "사료", "키링", "열쇠고리",
         // Processed Meals (Exclude "Rice Bowl" when searching for "Pork")
-        "덮밥", "볶음밥", "컵밥", "도시락", "무침", "반찬", "절임", "장아찌", "튀김", "밀키트", "쿠킹박스", "짜사이", "자차이", "가공", "완제"
+        "덮밥", "볶음밥", "컵밥", "도시락", "무침", "반찬", "절임", "장아찌", "튀김", "밀키트", "쿠킹박스", "짜사이", "자차이", "가공", "완제",
+        // Beverages & Health Foods (Strictly exclude unless requested)
+        "티백", "차류", "액상", "스틱", "환", "정", "캡슐", "진액", "건강식품", "호박차", "팥차", "율무차", "생강차", "대추차", "쌍화차", "유자차", "매실차", "오미자차", "식혜", "수정과"
     ];
+
+    // Keywords that indicate processed/beverage products. 
+    // If the User's Query does NOT contain these, we should strongly exclude items that DO.
+    const BEVERAGE_KEYWORDS = ["차", "즙", "주스", "에이드", "라떼", "음료", "드링크", "수"];
 
     try {
         const query = encodeURIComponent(queryName);
@@ -55,6 +61,27 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 // 2. Keyword Exclusion
                 if (EXCLUDED_KEYWORDS.some(keyword => title.includes(keyword))) continue;
 
+                // [Smart Beverage Exclusion]
+                // If user is NOT searching for a beverage (query doesn't contain "차", "즙", etc.),
+                // but the item title IS a beverage (contains "호박차", "사과즙" etc.), exclude it.
+                // Note: We check if `title` ends with "차" or contains "차 " to avoid false positives like "차돌박이" (Beef Brisket).
+                // However, "호박차" is clear.
+                const isQueryBeverage = BEVERAGE_KEYWORDS.some(k => queryName.includes(k));
+                if (!isQueryBeverage) {
+                    // Exclude specific known teas/juices matching the ingredient name
+                    if (title.includes("차") && !title.includes("차돌") && !title.includes("멸치")) {
+                        // "차" is risky (matches "녹차", "자동차"). 
+                        // Safer: Check category (done below) or specific phrasing.
+                        // Let's rely on specific excluded keywords ("호박차", "팥차") added above for now, 
+                        // and category filtering.
+                    }
+                    if (BEVERAGE_KEYWORDS.some(k => title.includes(k)) && !title.includes("배추") && !title.includes("고추")) {
+                        // "배추" contains "주" (Juice keyword '주스' check? No '주' is not in list).
+                        // "고추" contains "추" (not in list).
+                        // Safe to rely on category.
+                    }
+                }
+
                 // [Exclusion: Price Comparison / Catalog Bundles]
                 // "네이버" mallName usually indicates a catalog page (price comparison).
                 // productType '1' -> General Product (Mall Item). '2' -> Used, '3' -> Rental, etc.
@@ -78,7 +105,16 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 }
 
                 // [Negative Filter] Explicitly exclude non-food categories even if they contain "식품" (e.g. "식품보관용기")
-                const EXCLUDED_CATEGORIES = ["주방용품", "수납", "정리", "원예", "자재", "비료", "농기구", "식기", "그릇", "냄비", "조리도구", "포장", "용기", "잡화", "문구", "완구", "교구", "서적", "출산", "육아", "취미", "반려동물", "공구", "산업"];
+                const EXCLUDED_CATEGORIES = ["주방용품", "수납", "정리", "원예", "자재", "비료", "농기구", "식기", "그릇", "냄비", "조리도구", "포장", "용기", "잡화", "문구", "완구", "교구", "서적", "출산", "육아", "취미", "반려동물", "공구", "산업", "가렌드", "파티"];
+                // Add Beverage categories if query doesn't look like a beverage
+                const BEVERAGE_CATEGORIES = ["차류", "건강식품", "음료", "커피", "전통차", "허브차", "홍차", "녹차", "다이어트식품", "건강환", "건강즙", "건강분말"];
+
+                if (!isQueryBeverage) {
+                    if (BEVERAGE_CATEGORIES.some(badCat => categories.includes(badCat))) {
+                        continue;
+                    }
+                }
+
                 if (EXCLUDED_CATEGORIES.some(badCat => categories.includes(badCat))) {
                     continue;
                 }
