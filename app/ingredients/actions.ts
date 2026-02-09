@@ -176,19 +176,19 @@ export async function deleteIngredient(id: number) {
     console.log(`[deleteIngredient] Request for ID: ${id}`);
 
     try {
-        await prisma.ingredient.update({
+        const update = await prisma.ingredient.update({
             where: {
                 id,
                 userId: (session.user as any).id as any,
             },
             data: { isDeleted: true }
         });
-        console.log(`[deleteIngredient] Success: ${id}`);
+        console.log(`[deleteIngredient] Success: ${id}, isDeleted: ${update.isDeleted}`);
 
         revalidatePath("/ingredients", "page");
         revalidatePath("/", "layout");
     } catch (error) {
-        console.error(`[deleteIngredient] Error:`, error);
+        console.error(`[deleteIngredient] FAILED for ID ${id}. User: ${(session.user as any)?.id}. Error:`, error);
         throw error;
     }
 }

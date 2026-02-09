@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+// ... (imports)
+
+// ...
+
+
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X, TrendingUp } from "lucide-react";
@@ -89,7 +94,7 @@ export default function IngredientList({ initialIngredients }: Props) {
     const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
 
     // Sync with server data if it changes (e.g. after router.refresh)
-    useMemo(() => {
+    useEffect(() => {
         setIngredients(initialIngredients);
     }, [initialIngredients]);
 

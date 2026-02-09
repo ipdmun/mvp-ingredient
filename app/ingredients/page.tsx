@@ -8,6 +8,7 @@ import IngredientList from "../components/IngredientList";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function IngredientsPage() {
     const session = await getServerSession(authOptions);
