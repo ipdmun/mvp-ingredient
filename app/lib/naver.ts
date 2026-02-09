@@ -30,6 +30,8 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
 
     try {
         const query = encodeURIComponent(queryName);
+        // console.log(`[NaverAPI] Querying: ${queryName}`);
+
         // [Key Improvement]: Use sort='sim' (Relevance/Accuracy) instead of 'asc' (Lowest Price)
         // 'asc' often returns irrelevant cheap items (hooks, scales) for generic queries like "Mu".
         // 'sim' returns relevant items first (like "Radish").
@@ -42,15 +44,21 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
             next: { revalidate: 3600 } // Cache for 1 hour
         });
 
-        if (!apiRes.ok) return null;
+        if (!apiRes.ok) {
+            // console.error(`[NaverAPI] Error: ${apiRes.status} ${apiRes.statusText}`);
+            return null;
+        }
 
         const data = await apiRes.json();
+        // console.log(`[NaverAPI] Raw Items Found: ${data.items ? data.items.length : 0}`);
+
         const validItems: { price: number, source: string, link: string }[] = [];
 
         if (data.items && data.items.length > 0) {
             // Filter Loop (Collect ALL valid items)
             for (const item of data.items) {
-                const title = item.title.toLowerCase();
+                // Clean Title (Remove HTML tags like <b>)
+                let title = item.title.toLowerCase().replace(/<[^>]+>/g, "");
                 // Naver returns category1, category2, category3, category4
                 const categories = [item.category1, item.category2, item.category3, item.category4].filter(Boolean).join(" ");
                 const price = parseInt(item.lprice, 10);
@@ -59,7 +67,10 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 if (price < 100) continue;
 
                 // 2. Keyword Exclusion
-                if (EXCLUDED_KEYWORDS.some(keyword => title.includes(keyword))) continue;
+                if (EXCLUDED_KEYWORDS.some(keyword => title.includes(keyword))) {
+                    // console.log(`[Filter] Excluded by Keyword: ${title}`);
+                    continue;
+                }
 
                 // [Smart Beverage Exclusion]
                 // If user is NOT searching for a beverage (query doesn't contain "차", "즙", etc.),
@@ -84,11 +95,13 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
 
                 // [Exclusion: Price Comparison / Catalog Bundles]
                 // "네이버" mallName usually indicates a catalog page (price comparison).
-                // productType '1' -> General Product (Mall Item). '2' -> Used, '3' -> Rental, etc.
-                // We want direct mall items only.
-                if (item.mallName === "네이버" || (item.productType && String(item.productType) !== "1")) {
+                // productType '1' -> General Product. '2' -> SmartStore/Window (likely ok). '3' -> Rental.
+                // We STRICTLY exclude "네이버" (Catalogs), but we RELAX productType check to allow more items.
+                if (item.mallName === "네이버") {
+                    console.log(`[Filter] Excluded by Catalog (Naver Mall): ${title}`);
                     continue;
                 }
+                // (Relaxed ProductType check: Removed strict '=== 1' check to allow Window/SmartStore items)
 
                 // 3. Category Check
                 // MUST contain food-related keywords in the category path.
@@ -101,6 +114,7 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 const isFoodCategory = validCategory1.some(cat => item.category1.includes(cat));
 
                 if (!isFoodCategory) {
+                    // console.log(`[Filter] Excluded by Non-Food Category: ${title} (${item.category1})`);
                     continue; // Skip non-food categories entirely
                 }
 
@@ -111,11 +125,13 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
 
                 if (!isQueryBeverage) {
                     if (BEVERAGE_CATEGORIES.some(badCat => categories.includes(badCat))) {
+                        // console.log(`[Filter] Excluded by Beverage Category: ${title} (${categories})`);
                         continue;
                     }
                 }
 
                 if (EXCLUDED_CATEGORIES.some(badCat => categories.includes(badCat))) {
+                    // console.log(`[Filter] Excluded by Bad Category: ${title} (${categories})`);
                     continue;
                 }
 
@@ -123,11 +139,12 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 // The title MUST contain ALL keywords from the query.
                 // e.g. Query: "배추 20kg" -> Title must contain "배추" AND "20kg"
                 const queryParts = queryName.toLowerCase().split(/\s+/).filter(Boolean);
-                const titleLower = title.toLowerCase(); // Title already lowercased above
+                const titleLower = title.toLowerCase(); // Title already lowercased and stripped of tags
 
                 const allKeywordsMatch = queryParts.every(part => titleLower.includes(part));
 
                 if (!allKeywordsMatch) {
+                    // console.log(`[Filter] Excluded by Title Match: ${title} (Query: ${queryName})`);
                     continue;
                 }
 
@@ -139,6 +156,8 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
                 });
             }
         }
+
+        // console.log(`[NaverAPI] Valid Items before Check: ${validItems.length}`);
 
         // If generic query "Mu" returns 100 relevant items, we sort them by PRICE ASCENDING to find the cheapest relevant one.
         if (validItems.length > 0) {
@@ -165,7 +184,7 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
         }
 
     } catch (error) {
-        console.error("Naver API Fetch Error:", error);
+        // console.error("Naver API Fetch Error:", error);
     }
     return null;
 };
