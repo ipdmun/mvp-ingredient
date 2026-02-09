@@ -143,6 +143,24 @@ export const fetchNaverPrice = async (queryName: string): Promise<{ price: numbe
         // If generic query "Mu" returns 100 relevant items, we sort them by PRICE ASCENDING to find the cheapest relevant one.
         if (validItems.length > 0) {
             validItems.sort((a, b) => a.price - b.price);
+
+            // [Outlier Filtering]
+            // Remove the absolute Cheapest (Min) and Most Expensive (Max) items to filter outliers.
+            // Only apply if we have enough data (>= 5 items) to avoid emptying the list too much.
+            if (validItems.length >= 5) {
+                // Remove first (Min) and last (Max)
+                // Since it's sorted by price ASC: validItems[0] is Min, validItems[length-1] is Max.
+                // We keep the middle range.
+                // However, user wants to find the CHEAPEST VALID price.
+                // If we remove the cheapest, we might remove the TRUE best deal.
+                // But user explicitly asked: "Exclude Max and Min to filter outliers".
+                // So we will respect that request for robustness.
+                // Example: [100, 200, 300, 400, 10000] -> Remove 100 and 10000 -> [200, 300, 400]
+                // 100 might be an accessory/error.
+                validItems.shift(); // Remove Min
+                validItems.pop();   // Remove Max
+            }
+
             return validItems.slice(0, 20); // Return top 20 candidates for user selection
         }
 
