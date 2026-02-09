@@ -7,8 +7,10 @@ import { authOptions } from "@/app/lib/auth";
 
 // --- Internal Logic (No session checks, no revalidatePath) ---
 
+import { getStandardWeight } from "@/app/lib/recipeUtils";
+
 // Helper to normalize price to base unit (g, ml, 개)
-function calculateNormalizedPrice(price: number, amount: number, unit: string) {
+function calculateNormalizedPrice(price: number, amount: number, unit: string, ingredientName: string) {
     // 1. Basic Unit Price (Total Price / Amount)
     let unitPrice = amount > 0 ? price / amount : price;
     let normalizedUnit = unit;
@@ -16,6 +18,8 @@ function calculateNormalizedPrice(price: number, amount: number, unit: string) {
 
     // 2. Normalize Unit (kg -> g, l -> ml)
     const lowerUnit = unit.toLowerCase().trim();
+
+    const isPieceUnit = /개|ea|piece|모|봉|단|포기/i.test(lowerUnit);
 
     if (lowerUnit === 'kg') {
         unitPrice = unitPrice / 1000; // Price per kg -> Price per g
@@ -33,12 +37,15 @@ function calculateNormalizedPrice(price: number, amount: number, unit: string) {
         unitPrice = unitPrice / 600; // Meat usually 600g
         normalizedUnit = 'g';
         normalizedAmount = amount * 600;
-    } else if (lowerUnit === '모') {
-        // Tofu average 350g (updated per user request).
-        // 1 block = 350g
-        unitPrice = unitPrice / 350;
-        normalizedUnit = 'g';
-        normalizedAmount = amount * 350;
+    } else if (isPieceUnit) {
+        // [Piece-to-Weight Logic]
+        // If the unit is piece-based, convert to grams based on standard weight
+        const std = getStandardWeight(ingredientName);
+        if (std) {
+            unitPrice = unitPrice / std.weight; // Price per piece -> Price per g
+            normalizedUnit = 'g';
+            normalizedAmount = amount * std.weight;
+        }
     }
 
     return {
@@ -160,7 +167,7 @@ export async function createIngredient(formData: FormData) {
 
         // Calculate Unit Price for storage/comparison
         // [Fix] Normalize Unit (kg -> g)
-        const normalized = calculateNormalizedPrice(price, amount, unit);
+        const normalized = calculateNormalizedPrice(price, amount, unit, name);
 
         await savePriceLogic((session.user as any).id, ingredientId, {
             price: normalized.unitPrice, // Save Normalized Unit Price (e.g. per g)
@@ -238,8 +245,12 @@ export async function createIngredientPrice(ingredientId: number, formData: Form
 
     if (!price || !unit || !source) throw new Error("All fields are required");
 
+    // Fetch Ingredient Name
+    const ingredient = await prisma.ingredient.findUnique({ where: { id: ingredientId } });
+    const ingredientName = ingredient?.name || "Unknown";
+
     // Calculate Unit Price with Normalization
-    const normalized = calculateNormalizedPrice(price, amount || 1, unit);
+    const normalized = calculateNormalizedPrice(price, amount || 1, unit, ingredientName);
 
     // Ensure totalPrice is set (it's the input price)
     const finalTotalPrice = totalPrice || price;
@@ -344,14 +355,14 @@ export async function createBulkIngredientPrices(items: {
             let normalized;
             if (item.originalPrice && item.originalPrice > 0) {
                 // Case A: accurate Total Price exists
-                normalized = calculateNormalizedPrice(item.originalPrice, item.amount || 1, item.unit);
+                normalized = calculateNormalizedPrice(item.originalPrice, item.amount || 1, item.unit, item.name);
             } else {
                 // Case B: Only Unit Price exists (or Total is 0/missing)
                 // We treat item.price as the Unit Price for the given item.unit
                 // To use calculateNormalizedPrice correctly:
                 // "Total Price" = item.price * (item.amount || 1)
                 const estimatedTotal = item.price * (item.amount || 1);
-                normalized = calculateNormalizedPrice(estimatedTotal, item.amount || 1, item.unit);
+                normalized = calculateNormalizedPrice(estimatedTotal, item.amount || 1, item.unit, item.name);
             }
 
             // Sanitize Market Data
@@ -452,11 +463,16 @@ export async function updateIngredientPrice(priceId: number, formData: FormData)
 
     if (!inputTotalPrice || !inputUnit || !source) throw new Error("Fields required");
 
-    // Normalize
-    const normalized = calculateNormalizedPrice(inputTotalPrice, inputAmount || 1, inputUnit);
-
-    const priceRecord = await prisma.ingredientPrice.findUnique({ where: { id: priceId } });
+    // Get name
+    const priceRecord = await prisma.ingredientPrice.findUnique({
+        where: { id: priceId },
+        include: { ingredient: true }
+    });
     if (!priceRecord) throw new Error("Record not found");
+    const ingredientName = priceRecord.ingredient?.name || "Unknown";
+
+    // Normalize
+    const normalized = calculateNormalizedPrice(inputTotalPrice, inputAmount || 1, inputUnit, ingredientName);
 
     await prisma.ingredientPrice.update({
         where: { id: priceId },

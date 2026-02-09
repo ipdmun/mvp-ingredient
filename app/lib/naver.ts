@@ -1,3 +1,4 @@
+import { getStandardWeight } from "./recipeUtils";
 
 export const fetchNaverPrice = async (queryName: string): Promise<{ price: number, source: string, link: string }[] | null> => {
     const naverClientId = process.env.NAVER_CLIENT_ID;
@@ -253,6 +254,10 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     // If we matched specific quantity (e.g. "Onion 15kg"), Naver result is Total Price for 15kg.
     // If we matched fallback (e.g. "Onion"), Naver result is likely Cheapest Unit Price (1kg or 1ea).
 
+    import { getStandardWeight } from "./recipeUtils";
+
+    // ... (existing code)
+
     if (matchType === 'specific') {
         const totalDiff = price - marketPrice;
         // Normalize to Unit Diff so downstream logic works consistently
@@ -262,7 +267,19 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         // Naver's price is often total price (e.g. 27,000 for 1kg).
         // If we don't know the Naver unit, comparing against user price is risky.
         // For fallback, we compare user's UNIFIED unit price.
-        const userUnitPrice = amount > 0 ? price / amount : price;
+
+        let userUnitPrice = amount > 0 ? price / amount : price;
+
+        // [New Piece Logic]
+        // If the user's unit is piece-based, normalize it to g for a fair comparison with market's likely unit price
+        const lowerUnit = unit.toLowerCase().trim();
+        const isPieceUnit = /개|ea|piece|모|봉|단|포기/i.test(lowerUnit);
+        if (isPieceUnit) {
+            const std = getStandardWeight(name);
+            if (std) {
+                userUnitPrice = userUnitPrice / std.weight; // per piece -> per g
+            }
+        }
 
         // Strategy: If Naver price is > 3x user unit price, it's likely a total price.
         // We skip diff calculation to avoid crazy numbers like -26,900.

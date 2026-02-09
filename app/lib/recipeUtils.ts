@@ -23,7 +23,7 @@ const UNIT_STANDARDS: Record<string, number> = {
     "파프리카": 150,
     "오이": 200,
     "호박": 250,
-    "애호박": 250,
+    "애호박": 275,
     "당근": 200, // Medium carrot. 10g -> 1/20 (changed from 150 to avoid 1/15)
     "감자": 150,
     "고구마": 200,
@@ -54,6 +54,17 @@ const UNIT_STANDARDS: Record<string, number> = {
     "깨": 1,
     "통깨": 1,
 };
+
+/**
+ * Returns standard weight/amount for a given ingredient name.
+ */
+export function getStandardWeight(name: string): { weight: number; unit: string } | null {
+    const key = Object.keys(UNIT_STANDARDS).find(k => name.includes(k));
+    if (!key) return null;
+
+    // Default to 'g' for these standards
+    return { weight: UNIT_STANDARDS[key], unit: 'g' };
+}
 
 export function convertIngredientAmount(
     targetName: string,
