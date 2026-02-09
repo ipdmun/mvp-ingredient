@@ -10,7 +10,7 @@ const UNIT_STANDARDS: Record<string, number> = {
     "순두부": 350,
     "연두부": 250,
     // Veggies (1 piece approx weight in g)
-    "양파": 250, // User rule: 200-300g -> 250g
+    "양파": 230, // User request: 230g
     "대파": 80, // 1 stalk
     "쪽파": 10,
     "마늘": 5, // 1 clove
@@ -21,12 +21,12 @@ const UNIT_STANDARDS: Record<string, number> = {
     "홍고추": 15,
     "피망": 100,
     "파프리카": 150,
-    "오이": 250, // User rule: 200-300g -> 250g
+    "오이": 200, // User request: 200g
     "호박": 250,
-    "애호박": 275,
-    "당근": 250, // User rule: 200-300g -> 250g
-    "감자": 150,
-    "고구마": 250, // User rule: 200-300g -> 250g
+    "애호박": 280, // User request: 280g
+    "당근": 170, // User request: 170g
+    "감자": 200, // User request: 200g
+    "고구마": 180, // User request: 180g
     "무": 1000, // 1 whole radish is heavy
     "배추": 2000, // 1 whole cabbage
     "알배기": 500,
