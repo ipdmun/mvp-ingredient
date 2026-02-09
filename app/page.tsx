@@ -36,13 +36,24 @@ export default async function Home() {
       orderBy: { createdAt: "desc" },
     });
 
+    // Serialize data to avoid "Object not serializable" errors
+    const serializedIngredients = ingredients.map(ing => ({
+      ...ing,
+      createdAt: ing.createdAt.toISOString(),
+      prices: ing.prices.map(p => ({
+        ...p,
+        recordedAt: p.recordedAt.toISOString(),
+        marketData: p.marketData ? JSON.parse(JSON.stringify(p.marketData)) : undefined
+      }))
+    }));
+
     return (
       <div className="space-y-8 pb-24">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
               식자재 목록
-              <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full border border-orange-200">v0.1.18 (Final Fix)</span>
+              <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full border border-orange-200">v0.1.19 (Stable)</span>
             </h1>
             <p className="mt-1 text-gray-500">관리 중인 식자재를 추가하고 확인하세요.</p>
           </div>
@@ -61,7 +72,7 @@ export default async function Home() {
 
         {/* 재료 리스트 (Client Component) */}
         {
-          ingredients.length === 0 ? (
+          serializedIngredients.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-center">
               <div className="rounded-full bg-gray-100 p-3">
                 <Package className="h-6 w-6 text-gray-400" />
@@ -70,7 +81,7 @@ export default async function Home() {
               <p className="mt-1 text-sm text-gray-500">위 폼을 사용하여 첫 번째 재료를 추가해보세요.</p>
             </div>
           ) : (
-            <IngredientList initialIngredients={ingredients as any} />
+            <IngredientList initialIngredients={serializedIngredients} />
           )
         }
         <GlobalCameraFab ingredients={ingredients} />

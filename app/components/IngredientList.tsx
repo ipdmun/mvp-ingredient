@@ -13,9 +13,10 @@ import { getIngredientIcon, convertPriceForDisplay, formatIngredientName } from 
 import { deleteIngredient, refreshIngredientPrice, bulkDeleteIngredients } from "@/app/ingredients/actions";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
+
 type Price = {
     price: number;
-    recordedAt: Date;
+    recordedAt: Date | string;
     source: string;
     totalPrice?: number | null;
     amount?: number | null;
@@ -28,7 +29,7 @@ type Ingredient = {
     id: number;
     name: string;
     unit: string;
-    createdAt: Date;
+    createdAt: Date | string;
     prices: Price[];
 };
 
@@ -44,6 +45,18 @@ export default function IngredientList({ initialIngredients }: Props) {
     const [searchTerm, setSearchTerm] = useState("");
     const [sortType, setSortType] = useState<SortType>("createdAt");
     const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+    // Helper to hydrate dates
+    const hydrateIngredients = (data: Ingredient[]) => {
+        return data.map(item => ({
+            ...item,
+            createdAt: new Date(item.createdAt),
+            prices: item.prices.map(p => ({
+                ...p,
+                recordedAt: new Date(p.recordedAt)
+            }))
+        }));
+    };
 
     // Selection State
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -91,11 +104,11 @@ export default function IngredientList({ initialIngredients }: Props) {
     };
 
     // Local state for Optimistic UI
-    const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
+    const [ingredients, setIngredients] = useState<Ingredient[]>(() => hydrateIngredients(initialIngredients));
 
     // Sync with server data if it changes (e.g. after router.refresh)
     useEffect(() => {
-        setIngredients(initialIngredients);
+        setIngredients(hydrateIngredients(initialIngredients));
     }, [initialIngredients]);
 
     const filteredAndSortedIngredients = useMemo(() => {

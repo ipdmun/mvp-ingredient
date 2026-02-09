@@ -21,7 +21,8 @@ export default async function DashboardPage() {
         ingredients = await prisma.ingredient.findMany({
             where: {
                 // @ts-ignore
-                userId: (session.user as any).id
+                userId: (session.user as any).id,
+                isDeleted: false
             },
             include: {
                 prices: {

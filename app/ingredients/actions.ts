@@ -133,7 +133,14 @@ export async function createIngredient(formData: FormData) {
 
     if (existingIngredient) {
         ingredientId = existingIngredient.id;
-        // Keep existing logic, just skip updating updatedAt 
+        // Reset isDeleted if it was true, and update unit
+        await prisma.ingredient.update({
+            where: { id: ingredientId },
+            data: {
+                isDeleted: false,
+                unit: unit // Update unit in case it changed
+            }
+        });
     } else {
         // Create Ingredient
         const newIngredient = await prisma.ingredient.create({
@@ -309,6 +316,14 @@ export async function createBulkIngredientPrices(items: {
 
             if (existingIngredient) {
                 ingredientId = existingIngredient.id;
+                // [Fix] Restore deleted ingredient and update unit
+                await prisma.ingredient.update({
+                    where: { id: ingredientId },
+                    data: {
+                        isDeleted: false,
+                        unit: item.unit || "개"
+                    }
+                });
             } else {
                 const newIngredient = await prisma.ingredient.create({
                     data: {
@@ -316,6 +331,7 @@ export async function createBulkIngredientPrices(items: {
                         userId,
                         name: item.name,
                         unit: item.unit || "개",
+                        isDeleted: false
                     },
                 });
                 ingredientId = newIngredient.id;
