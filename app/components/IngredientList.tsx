@@ -426,20 +426,24 @@ export default function IngredientList({ initialIngredients }: Props) {
                                     <div className="text-right shrink-0 ml-4">
                                         <div className="flex flex-col items-end gap-1.5">
                                             {/* Purchase History Section */}
-                                            <div className="flex flex-col items-end gap-0.5">
-                                                <p className="text-[10px] text-gray-400 font-bold mb-0.5">구매내역</p>
+                                            <div className="flex flex-col items-end gap-1">
                                                 {item.prices.slice(0, 2).map((p, idx) => (
-                                                    <p key={idx} className={`text-[10px] sm:text-[11px] font-bold whitespace-nowrap leading-tight ${idx === 0 ? 'text-gray-900' : 'text-gray-400'}`}>
-                                                        {formatDate(p.recordedAt)}일 : {' '}
-                                                        <span className={idx === 0 ? 'text-blue-600' : 'text-gray-400'}>
+                                                    <div key={idx} className="flex items-center gap-1.5">
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${idx === 0
+                                                                ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                                                : 'bg-gray-50 text-gray-400 border-gray-100'
+                                                            }`}>
+                                                            {idx === 0 ? '최근 구매' : '이전 구매'}
+                                                        </span>
+                                                        <p className={`text-[10px] sm:text-[11px] font-black whitespace-nowrap leading-tight ${idx === 0 ? 'text-blue-600' : 'text-gray-400'}`}>
                                                             {p.amount ? formatAmount(p.amount, p.unit) : ''}
                                                             {' '}
                                                             {p.totalPrice ? `${p.totalPrice.toLocaleString()}원` : ''}
-                                                            <span className="text-[9px] sm:text-[10px] opacity-70 ml-0.5">
+                                                            <span className={`text-[9px] sm:text-[10px] ml-1 font-medium ${idx === 0 ? 'opacity-80' : 'opacity-60'}`}>
                                                                 ({Math.round(convertPriceForDisplay(p.price, p.unit, displayUnit)).toLocaleString()}원/{displayUnit})
                                                             </span>
-                                                        </span>
-                                                    </p>
+                                                        </p>
+                                                    </div>
                                                 ))}
                                             </div>
 
