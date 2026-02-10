@@ -453,51 +453,45 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                         {/* [Price Comparison Logic Refinement] */}
                                                         {marketData && (
                                                             <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                                                <div className="flex items-center justify-between mb-1">
-                                                                    <span className="text-xs font-bold text-gray-500">시장 최저가 ({marketData.cheapestSource})</span>
-                                                                    <a href={marketData.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 underline flex items-center">
-                                                                        확인하기 <ExternalLink className="h-3 w-3 ml-0.5" />
-                                                                    </a>
-                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm font-bold text-gray-800">{marketData.cheapestSource}</span>
+                                                                    </div>
 
-                                                                <div className="flex items-center gap-2">
-                                                                    {/* Market Total & Unit Price */}
-                                                                    <span className="text-sm font-medium text-gray-700">
-                                                                        {/* Primary: Total Price matching user amount */}
-                                                                        {marketData.marketTotalForUserAmount
-                                                                            ? marketData.marketTotalForUserAmount.toLocaleString()
-                                                                            : marketData.price.toLocaleString()}원
-
-                                                                        <span className="text-xs text-gray-400 font-normal ml-1">
+                                                                    <div className="flex items-center gap-2 text-sm">
+                                                                        <span className="font-bold text-gray-900 text-lg">
+                                                                            {/* Primary: Total Price matching user amount */}
+                                                                            {marketData.marketTotalForUserAmount
+                                                                                ? marketData.marketTotalForUserAmount.toLocaleString()
+                                                                                : marketData.price.toLocaleString()}원
+                                                                        </span>
+                                                                        <span className="text-gray-300">|</span>
+                                                                        <span className="text-gray-500 font-medium">
                                                                             {/* Secondary: Unit Price */}
                                                                             {marketData.marketUnitPrice
-                                                                                ? `(${Math.round(marketData.marketUnitPrice).toLocaleString()}원/${marketData.marketUnit || item.unit})`
-                                                                                : `(${marketData.price.toLocaleString()}원)`}
+                                                                                ? `${Math.round(marketData.marketUnitPrice).toLocaleString()}원`
+                                                                                : `${marketData.price.toLocaleString()}원`}
+                                                                            <span className="text-xs text-gray-400 font-normal ml-0.5">({item.unit}당)</span>
                                                                         </span>
-                                                                    </span>
-                                                                </div>
+                                                                    </div>
 
-                                                                {/* Total Diff Display */}
-                                                                {marketData.totalDiff !== undefined && (
-                                                                    <div className={`mt-2 text-sm font-bold flex items-center gap-1 ${marketData.totalDiff > 0 ? "text-red-500" : "text-blue-600"}`}>
-                                                                        {marketData.totalDiff > 0 ? (
-                                                                            <>
-                                                                                <div className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs">📉 손해</div>
-                                                                                <span>{Math.abs(Math.round(marketData.totalDiff)).toLocaleString()}원 더 비쌈</span>
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <div className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs">🎉 이득</div>
-                                                                                <span>{Math.abs(Math.round(marketData.totalDiff)).toLocaleString()}원 절약</span>
-                                                                            </>
+                                                                    <div className="flex items-center justify-between mt-1">
+                                                                        <a href={marketData.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gray-400 underline hover:text-blue-500">
+                                                                            상품 보러가기
+                                                                        </a>
+
+                                                                        {/* Diff Display: Loss/Profit */}
+                                                                        {marketData.totalDiff !== undefined && (
+                                                                            <div className="flex items-center gap-1 font-bold text-base">
+                                                                                {marketData.totalDiff > 0 ? (
+                                                                                    <span className="text-red-500">손해 {marketData.totalDiff.toLocaleString()}원</span>
+                                                                                ) : (
+                                                                                    <span className="text-blue-600">이익 {Math.abs(marketData.totalDiff).toLocaleString()}원</span>
+                                                                                )}
+                                                                            </div>
                                                                         )}
                                                                     </div>
-                                                                )}
-
-                                                                {/* Context Explanation */}
-                                                                <p className="text-[10px] text-gray-400 mt-1">
-                                                                    * {item.prices[0]?.amount || 1}{item.unit} 구매 기준 환산 금액입니다.
-                                                                </p>
+                                                                </div>
                                                             </div>
                                                         )}
 
