@@ -272,6 +272,27 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         link: bestMatch.link,
         cheapestLink: bestMatch.link,
         marketDataRaw: bestMatch,
-        candidates: marketDataList
+        candidates: marketDataList.map(c => {
+            // Pre-calculate unit price for each candidate to simplify client-side switching
+            let cUnitPrice = c.price;
+            if (c.parsedAmount && c.parsedAmount > 0) {
+                cUnitPrice = c.price / c.parsedAmount;
+                if (c.parsedUnit === 'kg' || c.parsedUnit === 'l') {
+                    cUnitPrice = cUnitPrice / 1000;
+                }
+            } else if (matchType === 'specific' && amount > 0) {
+                const isSuspiciouslyLow = c.price < (userUnitPrice * amount * 0.3);
+                if (isSuspiciouslyLow) cUnitPrice = c.price;
+                else cUnitPrice = c.price / amount;
+
+                if (lowerUnit === 'kg' || lowerUnit === 'l') {
+                    cUnitPrice = cUnitPrice / 1000;
+                }
+            }
+            return {
+                ...c,
+                perUnitPrice: cUnitPrice
+            };
+        })
     };
 };

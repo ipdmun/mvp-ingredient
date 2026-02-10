@@ -126,32 +126,32 @@ export default async function DashboardPage() {
                     <TrendingDown className="h-5 w-5 text-gray-500" />
                     재료별 기여도
                 </h2>
-            </div>
-            ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {rows.map((row) => (
-                    <Link
-                        href={`/ingredients/${row.id}`}
-                        key={row.id}
-                        className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
-                    >
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <h3 className="font-semibold text-gray-900">{row.name}</h3>
-                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{row.unit} 기준</span>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {rows.sort((a, b) => Math.abs(b.savings) - Math.abs(a.savings)).map((row) => (
+                        <div
+                            key={row.id}
+                            className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md"
+                        >
+                            <div className="flex flex-col gap-1">
+                                <span className="font-bold text-gray-900 text-lg">{row.name}</span>
+                                <span className="inline-flex w-fit items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                                    {row.unit} 기준
+                                </span>
                             </div>
-                            <div className={`text-lg font-bold ${row.savings > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                                +{row.savings.toLocaleString()}원
+                            <div className={`text-xl font-bold ${row.savings >= 0 ? 'text-blue-600' : 'text-red-500'}`}>
+                                {row.savings >= 0 ? `+${row.savings.toLocaleString()}원` : `${row.savings.toLocaleString()}원`}
                             </div>
                         </div>
-                        <div className="mt-4 flex items-center justify-end text-sm font-medium text-blue-600 opacity-0 transition-opacity group-hover:opacity-100">
-                            상세보기 <ArrowRight className="ml-1 h-4 w-4" />
-                        </div>
-                    </Link>
-                ))}
-            </div>
+                    ))}
+                </div>
+
+                {rows.length === 0 && (
+                    <div className="mt-4 text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        구매 내역이 없습니다.
+                    </div>
                 )}
+            </div>
         </div>
-        </div >
     );
 }
+```

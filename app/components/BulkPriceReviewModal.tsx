@@ -11,11 +11,18 @@ type MarketAnalysis = {
     price: number;
     status: "BEST" | "GOOD" | "BAD";
     desc?: string;
+    desc?: string;
     link?: string;
     totalDiff?: number;
     marketUnit?: string;
     marketUnitPrice?: number;
     marketTotalForUserAmount?: number;
+    candidates?: {
+        source: string;
+        price: number;
+        link: string;
+        perUnitPrice?: number;
+    }[];
 };
 
 type OCRItem = {
@@ -51,7 +58,8 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
             const mappedItems = items.map(item => ({
                 ...item,
                 originalPrice: item.price, // OCR 'price' is Total
-                price: item.amount && item.amount > 0 ? Math.round(item.price / item.amount) : item.price
+                price: item.amount && item.amount > 0 ? Math.round(item.price / item.amount) : item.price,
+                selectedCandidateIndex: 0 // Initialize selection
             }));
             setProcessedItems(mappedItems);
             setEditingIndex(null);
@@ -80,6 +88,75 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
     const cancelEdit = () => {
         setEditingIndex(null);
         setEditForm({});
+    };
+
+    const handlePrevCandidate = (idx: number) => {
+        const item = processedItems[idx];
+        if (!item.marketAnalysis.candidates || item.marketAnalysis.candidates.length <= 1) return;
+
+        // Current index stored in `item.status` temporarily (hacky but effective without new state) or add new field
+        // Actually, let's use a cleaner approach. We can add `selectedCandidateIndex` to OCRItem?
+        // Let's coerce `status` (which is string) to hold index? No, `status` is used for "BEST/GOOD".
+        // Let's add `selectedCandidateIndex` to the mapped item in useEffect.
+        
+        const currentIndex = (item as any).selectedCandidateIndex || 0;
+        const newIndex = currentIndex > 0 ? currentIndex - 1 : item.marketAnalysis.candidates.length - 1;
+        updateCandidate(idx, newIndex);
+    };
+
+    const handleNextCandidate = (idx: number) => {
+        const item = processedItems[idx];
+        if (!item.marketAnalysis.candidates || item.marketAnalysis.candidates.length <= 1) return;
+
+        const currentIndex = (item as any).selectedCandidateIndex || 0;
+        const newIndex = currentIndex < item.marketAnalysis.candidates.length - 1 ? currentIndex + 1 : 0;
+        updateCandidate(idx, newIndex);
+    };
+
+    const updateCandidate = (itemIdx: number, candidateIdx: number) => {
+        const newItems = [...processedItems];
+        const item = newItems[itemIdx];
+        const candidate = item.marketAnalysis.candidates![candidateIdx];
+
+        // Recalculate analysis based on new candidate
+        // Unit Price Per User Unit
+        let userUnitScale = 1;
+        if (item.unit === 'kg' || item.unit === 'L') userUnitScale = 1000;
+        
+        const marketUnitPrice = (candidate.perUnitPrice || 0) * userUnitScale;
+        const marketTotalForUserAmount = Math.round((candidate.perUnitPrice || 0) * (item.originalPrice && item.price ? (item.amount || 1) * userUnitScale : (item.amount || 1) * userUnitScale)); 
+        // Wait, logic check: 
+        // item.amount (e.g. 15kg). perUnitPrice is per gram (since we divided by 1000 in naver.ts).
+        // if perUnitPrice is e.g. 3.125 (won/g). 15kg = 15000g.
+        // marketTotal = 3.125 * 15000 = 46875. Correct.
+        // User Amount is `item.amount` (e.g. 15).
+        // If unit is kg, we need to multiply `item.amount` by 1000 to get grams?
+        // Yes, `item.amount` is the number in `item.unit`.
+        
+        let standardizedAmount = item.amount || 1;
+        if (item.unit === 'kg' || item.unit === 'L') standardizedAmount *= 1000;
+        // Piece logic? Assuming 'g' for now if not piece.
+        
+        const newMarketTotal = Math.round((candidate.perUnitPrice || candidate.price) * standardizedAmount);
+        // Fallback: if perUnitPrice is missing (shouldn't be), use price.
+        
+        const newTotalDiff = (item.originalPrice || item.price) - newMarketTotal;
+
+        newItems[itemIdx] = {
+            ...item,
+            // @ts-ignore
+            selectedCandidateIndex: candidateIdx,
+            marketAnalysis: {
+                ...item.marketAnalysis,
+                cheapestSource: candidate.source,
+                price: candidate.price,
+                link: candidate.link,
+                marketUnitPrice: marketUnitPrice,
+                marketTotalForUserAmount: newMarketTotal,
+                totalDiff: newTotalDiff
+            }
+        };
+        setProcessedItems(newItems);
     };
 
     const saveEdit = async () => {
