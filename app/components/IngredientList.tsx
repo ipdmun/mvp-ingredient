@@ -423,25 +423,28 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right shrink-0 ml-2">
-                                        <div className="flex flex-col items-end gap-1">
-                                            {/* Recent History Detail - Priority 1 */}
-                                            {latestPrice && (
-                                                <p className="text-[10px] sm:text-[11px] text-gray-900 font-bold whitespace-nowrap leading-tight">
-                                                    {formatDate(latestPrice.recordedAt)}일 구매 내역 : {' '}
-                                                    <span className="text-blue-600">
-                                                        {latestPrice.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : ''}
-                                                        {' '}
-                                                        {latestPrice.totalPrice ? `${latestPrice.totalPrice.toLocaleString()}원` : ''}
-                                                        <span className="text-[9px] sm:text-[10px] opacity-80 decoration-0 ml-0.5">
-                                                            ({Math.round(convertPriceForDisplay(latestPrice.price, latestPrice.unit, displayUnit)).toLocaleString()}원/{displayUnit})
+                                    <div className="text-right shrink-0 ml-4">
+                                        <div className="flex flex-col items-end gap-1.5">
+                                            {/* Purchase History Section */}
+                                            <div className="flex flex-col items-end gap-0.5">
+                                                <p className="text-[10px] text-gray-400 font-bold mb-0.5">구매내역</p>
+                                                {item.prices.slice(0, 2).map((p, idx) => (
+                                                    <p key={idx} className={`text-[10px] sm:text-[11px] font-bold whitespace-nowrap leading-tight ${idx === 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                        {formatDate(p.recordedAt)}일 : {' '}
+                                                        <span className={idx === 0 ? 'text-blue-600' : 'text-gray-400'}>
+                                                            {p.amount ? formatAmount(p.amount, p.unit) : ''}
+                                                            {' '}
+                                                            {p.totalPrice ? `${p.totalPrice.toLocaleString()}원` : ''}
+                                                            <span className="text-[9px] sm:text-[10px] opacity-70 ml-0.5">
+                                                                ({Math.round(convertPriceForDisplay(p.price, p.unit, displayUnit)).toLocaleString()}원/{displayUnit})
+                                                            </span>
                                                         </span>
-                                                    </span>
-                                                </p>
-                                            )}
+                                                    </p>
+                                                ))}
+                                            </div>
 
-                                            {/* Unit Price Title - Priority 2 */}
-                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                            {/* Unit Price Title */}
+                                            <div className="flex items-center gap-1.5 mt-1">
                                                 <span className="text-[9px] text-gray-400 font-bold bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap">최근 1달 단가</span>
                                                 <p className="text-sm sm:text-base font-black text-gray-900 whitespace-nowrap">
                                                     {latest > 0
