@@ -461,14 +461,18 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                                 </div>
 
                                                                 <div className="flex items-center gap-2">
-                                                                    {/* Market Unit Price */}
+                                                                    {/* Market Total & Unit Price */}
                                                                     <span className="text-sm font-medium text-gray-700">
-                                                                        {marketData.price.toLocaleString()}원
-                                                                        <span className="text-xs text-gray-400 font-normal">
-                                                                            {/* Try to show unit if possible, but marketDataRaw might not be fully transparent here unless we passed it. 
-                                                                                We can infer from context or just leave it simple. 
-                                                                            */}
-                                                                            {item.unit ? ` / ${item.unit}` : ''} (추정)
+                                                                        {/* Primary: Total Price matching user amount */}
+                                                                        {marketData.marketTotalForUserAmount
+                                                                            ? marketData.marketTotalForUserAmount.toLocaleString()
+                                                                            : marketData.price.toLocaleString()}원
+
+                                                                        <span className="text-xs text-gray-400 font-normal ml-1">
+                                                                            {/* Secondary: Unit Price */}
+                                                                            {marketData.marketUnitPrice
+                                                                                ? `(${Math.round(marketData.marketUnitPrice).toLocaleString()}원/${marketData.marketUnit || item.unit})`
+                                                                                : `(${marketData.price.toLocaleString()}원)`}
                                                                         </span>
                                                                     </span>
                                                                 </div>
@@ -491,11 +495,9 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                                 )}
 
                                                                 {/* Context Explanation */}
-                                                                {marketData.marketTotalForUserAmount && (
-                                                                    <p className="text-[10px] text-gray-400 mt-1">
-                                                                        * 시장가 기준 {item.prices[0]?.amount || 1}{item.unit} 환산 시 약 {Math.round(marketData.marketTotalForUserAmount).toLocaleString()}원
-                                                                    </p>
-                                                                )}
+                                                                <p className="text-[10px] text-gray-400 mt-1">
+                                                                    * {item.amount}{item.unit} 구매 기준 환산 금액입니다.
+                                                                </p>
                                                             </div>
                                                         )}
 
