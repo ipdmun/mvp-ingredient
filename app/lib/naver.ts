@@ -296,3 +296,66 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         })
     };
 };
+
+/**
+ * Generates a human-friendly AI business report based on processed market analysis data.
+ * Used in both API routes and client-side real-time updates.
+ */
+export const generateBusinessReport = (items: any[]) => {
+    const businessReport: string[] = [];
+    let totalSavings = 0;
+    let totalLoss = 0;
+    let analyzedSpend = 0;
+    let analyzedCount = 0;
+
+    items.forEach((item) => {
+        const analysis = item.marketAnalysis;
+        if (analysis) {
+            analyzedSpend += (item.originalPrice || item.price);
+            analyzedCount++;
+
+            if (analysis.totalDiff !== undefined) {
+                const diff = Math.round(analysis.totalDiff);
+                const isLoss = diff > 0;
+                const costDiff = Math.abs(diff).toLocaleString();
+                const amountCtx = item.amount && item.unit ? `${item.amount}${item.unit} 기준` : '구매량 기준';
+
+                if (Math.abs(diff) > 100) {
+                    if (isLoss) {
+                        businessReport.push(`📉 ${item.name}: 시장가보다 ${costDiff}원 더 비싸게 구매하셨어요. (${amountCtx})`);
+                        totalLoss += diff;
+                    } else {
+                        businessReport.push(`🎉 ${item.name}: 시장가보다 ${costDiff}원 저렴하게 득템하셨네요! (${amountCtx})`);
+                        totalSavings += Math.abs(diff);
+                    }
+                } else {
+                    if (diff > 0) totalLoss += diff;
+                    else totalSavings += Math.abs(diff);
+                }
+            }
+        }
+    });
+
+    const finalReport: string[] = [];
+    const netSavings = totalSavings - totalLoss;
+    const percentage = analyzedSpend > 0 ? (Math.abs(netSavings) / analyzedSpend) * 100 : 0;
+    const monthlyProjection = Math.abs(netSavings) * 4;
+
+    if (analyzedCount === 0) {
+        finalReport.push(`❓ 분석 가능한 식자재가 없습니다. (시장 데이터 부족)`);
+        finalReport.push(`직접 단가를 입력하여 정확한 분석을 받아보세요.`);
+    } else if (netSavings > 0) {
+        finalReport.push(`💰 사장님! 이번 장보기로 ${Math.round(netSavings).toLocaleString()}원을 아끼셨네요!`);
+        finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 저렴하며, 한 달이면 약 ${Math.round(monthlyProjection).toLocaleString()}원을 절약하실 수 있어요.`);
+    } else if (netSavings < 0) {
+        finalReport.push(`💡 사장님! 이번엔 평소보다 ${Math.round(Math.abs(netSavings)).toLocaleString()}원 더 지출하셨어요.`);
+        finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 비싸며, 최저가 구매 시 한 달에 약 ${Math.round(monthlyProjection).toLocaleString()}원을 아낄 수 있어요!`);
+    } else {
+        finalReport.push(`✅ 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
+    }
+
+    finalReport.push(...businessReport);
+    finalReport.push(`(기준 : 주요 온라인몰 및 식자재 플랫폼 평균 단가 비교)`);
+
+    return finalReport;
+};

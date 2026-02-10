@@ -7,6 +7,8 @@ import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, Che
 import { getIngredientIcon, convertPriceForDisplay, formatIngredientName } from "@/app/lib/utils";
 import { deleteIngredient, refreshIngredientPrice, bulkDeleteIngredients } from "@/app/ingredients/actions";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import PriceAnalysisModal from "./PriceAnalysisModal";
+import { Sparkles, Calendar } from "lucide-react";
 
 type Price = {
     price: number;
@@ -135,6 +137,31 @@ export default function IngredientList({ initialIngredients }: Props) {
 
     const [refreshingId, setRefreshToken] = useState<number | null>(null);
 
+    // AI Analysis State
+    const [analysisDate, setAnalysisDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [analysisReport, setAnalysisReport] = useState<string[] | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+
+    const handleRunAnalysis = async () => {
+        setIsAnalyzing(true);
+        try {
+            const resp = await fetch(`/api/ingredients/analyze?date=${analysisDate}`);
+            const data = await resp.json();
+            if (data.report) {
+                setAnalysisReport(data.report);
+                setIsAnalysisModalOpen(true);
+            } else {
+                alert(data.error || "분석할 데이터가 없습니다.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("분석 중 오류가 발생했습니다.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     const handleRefreshPrice = async (e: React.MouseEvent, id: number) => {
         e.preventDefault();
         e.stopPropagation();
@@ -245,18 +272,69 @@ export default function IngredientList({ initialIngredients }: Props) {
                     )}
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
-                    <div className="relative w-full sm:w-auto min-w-[12rem]">
-                        <input
-                            type="text"
-                            placeholder="재료 검색..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm pl-9"
-                        />
-                        <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="식자재 검색..."
+                                className="w-full rounded-xl border-gray-200 pl-10 pr-4 text-sm focus:border-blue-500 focus:ring-blue-500 lg:w-64 transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        {/* AI Analysis Tool */}
+                        <div className="flex items-center gap-2 bg-purple-50 p-1.5 rounded-xl border border-purple-100">
+                            <div className="flex items-center gap-1.5 px-2 text-purple-700">
+                                <Calendar className="h-4 w-4" />
+                                <input
+                                    type="date"
+                                    className="bg-transparent border-none p-0 text-xs font-bold focus:ring-0 cursor-pointer"
+                                    value={analysisDate}
+                                    onChange={(e) => setAnalysisDate(e.target.value)}
+                                />
+                            </div>
+                            <button
+                                onClick={handleRunAnalysis}
+                                disabled={isAnalyzing}
+                                className="flex items-center gap-1.5 bg-purple-600 px-4 py-1.5 rounded-lg text-xs font-black text-white hover:bg-purple-700 transition-all shadow-sm shadow-purple-200 disabled:opacity-50"
+                            >
+                                {isAnalyzing ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                )}
+                                AI 분석
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {/* selection/delete buttons */}
+                        {selectedIds.length > 0 && (
+                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200">
+                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
+                                    {selectedIds.length}개 선택됨
+                                </span>
+                                <button
+                                    onClick={handleBulkDelete}
+                                    disabled={isDeleting}
+                                    className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100 transition-all border border-red-100"
+                                >
+                                    {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                    일괄 삭제
+                                </button>
+                                <button
+                                    onClick={() => setSelectedIds([])}
+                                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="선택 취소"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
@@ -669,6 +747,13 @@ export default function IngredientList({ initialIngredients }: Props) {
                     <ArrowRight className="h-5 w-5 rotate-90" />
                 </button>
             </div>
+            {/* Price Analysis Modal */}
+            <PriceAnalysisModal
+                isOpen={isAnalysisModalOpen}
+                onClose={() => setIsAnalysisModalOpen(false)}
+                report={analysisReport || []}
+                date={analysisDate}
+            />
         </div>
     );
 }

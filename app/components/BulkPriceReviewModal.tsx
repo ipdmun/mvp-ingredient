@@ -158,6 +158,17 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         setProcessedItems(newItems);
     };
 
+    const [currentReport, setCurrentReport] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (processedItems.length > 0) {
+            import("@/app/lib/naver").then(({ generateBusinessReport }) => {
+                const newReport = generateBusinessReport(processedItems);
+                setCurrentReport(newReport);
+            });
+        }
+    }, [processedItems]);
+
     const saveEdit = async () => {
         if (editingIndex === null) return;
 
@@ -279,14 +290,14 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                 <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/30">
 
                     {/* Analyst Report Section */}
-                    {analystReport && analystReport.length > 0 && showReport && (
+                    {currentReport.length > 0 && showReport && (
                         <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
                             <h4 className="text-sm font-black text-purple-900 mb-2 flex items-center gap-2">
                                 🤖 AI 분석 리포트
                                 <div className="ml-auto flex items-center gap-2">
                                     <button
                                         onClick={() => {
-                                            const text = `[식자재 비서 AI 분석 리포트]\n\n${analystReport.join("\n")}`;
+                                            const text = `[식자재 비서 AI 분석 리포트]\n\n${currentReport.join("\n")}`;
                                             if (navigator.share) {
                                                 navigator.share({
                                                     title: '식자재 분석 리포트',
@@ -306,7 +317,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                             </h4>
                             <div className="space-y-1">
                                 <div className="space-y-2">
-                                    {analystReport.map((rep, idx) => (
+                                    {currentReport.map((rep, idx) => (
                                         <div key={idx} className="flex flex-col sm:flex-row text-sm items-start sm:items-center gap-1 sm:gap-2 border-b border-purple-100/50 last:border-0 pb-2 last:pb-0">
                                             <span className="text-gray-700 leading-relaxed font-medium">{rep}</span>
                                         </div>
