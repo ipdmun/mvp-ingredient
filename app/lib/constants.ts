@@ -1,7 +1,7 @@
 export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationPrompt?: string, ingredients: { name: string, amount: number, unit: string }[] }> = {
     "된장찌개": {
         imageUrl: "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Photorealistic food photography of Korean Soybean Paste Stew (Doenjang-jjigae) in an earthen pot, bubbling hot, tofu and zucchini visible, professional food styling, appetizing, cinematic lighting, 8k.",
+        illustrationPrompt: "Raw photo, 8k, dslr, Korean Soybean Paste Stew (Doenjang-jjigae) in an earthen pot, bubbling hot, tofu and zucchini visible, professional food styling, appetizing, cinematic lighting.",
         ingredients: [
             { name: "된장", amount: 30, unit: "g" },
             { name: "두부", amount: 150, unit: "g" }, // Changed from 100
@@ -13,7 +13,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "김치찌개": {
         imageUrl: "https://images.unsplash.com/photo-1583225214464-9296fae5dcd4?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Photorealistic food photography of Spicy Kimchi Stew (Kimchi-jjigae) with pork and tofu, boiling in a black stone pot, deep red broth, steam rising, high quality, professional studio lighting.",
+        illustrationPrompt: "Raw photo, 8k, dslr, Spicy Kimchi Stew (Kimchi-jjigae) with pork and tofu, boiling in a black stone pot, deep red broth, steam rising, high quality, professional studio lighting.",
         ingredients: [
             { name: "김치", amount: 150, unit: "g" },
             { name: "돼지고기", amount: 100, unit: "g" },
@@ -24,7 +24,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "비빔밥": {
         imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Photorealistic food photography of Korean Bibimbap in a stone bowl, colorful seasoned vegetables, sunny side up egg in center, red gochujang sauce, top-down professional food styling, 8k resolution.",
+        illustrationPrompt: "Raw photo, 8k, dslr, Korean Bibimbap in a stone bowl, colorful seasoned vegetables, sunny side up egg in center, red gochujang sauce, top-down professional food styling.",
         ingredients: [
             { name: "쌀밥", amount: 200, unit: "g" },
             { name: "콩나물", amount: 50, unit: "g" },

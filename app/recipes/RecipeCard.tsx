@@ -29,13 +29,15 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
     let isAi = false;
 
     if (prompt) {
-        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&nologo=true&model=flux&seed=${seed}`;
+        // [Force Photorealism] Override potential "illustration" keywords in DB
+        const enhancedPrompt = `Raw photo, 8k, dslr, soft lighting, ${prompt} --no illustration, painting, drawing, cartoon, anime, 3d render, sketch`;
+        displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${seed}`;
         isAi = true;
     } else if (imageUrl) {
         displayUrl = imageUrl;
     } else {
         // Fallback generic AI
-        const genericPrompt = `${recipe.name} delicious korean food, realistic food photography, high quality professional food styling, photorealistic, 8k`;
+        const genericPrompt = `Raw photo, 8k, dslr, ${recipe.name} delicious korean food, professional food styling --no illustration, painting, drawing, cartoon, anime`;
         displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${seed}`;
         isAi = true;
     }
