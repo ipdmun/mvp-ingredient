@@ -1,7 +1,7 @@
 export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationPrompt?: string, ingredients: { name: string, amount: number, unit: string }[] }> = {
     "된장찌개": {
         imageUrl: "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Korean Soybean Paste Stew (Doenjang-jjigae) in an earthen pot, bubbling hot, tofu and zucchini visible, rich broth, 4k, appetizing, cinematic lighting.",
+        illustrationPrompt: "Photorealistic food photography of Korean Soybean Paste Stew (Doenjang-jjigae) in an earthen pot, bubbling hot, tofu and zucchini visible, professional food styling, appetizing, cinematic lighting, 8k.",
         ingredients: [
             { name: "된장", amount: 30, unit: "g" },
             { name: "두부", amount: 150, unit: "g" }, // Changed from 100
@@ -13,7 +13,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "김치찌개": {
         imageUrl: "https://images.unsplash.com/photo-1583225214464-9296fae5dcd4?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Spicy Kimchi Stew (Kimchi-jjigae) with pork and tofu, boiling in a black stone pot, deep red broth, steam rising, high quality, delicious.",
+        illustrationPrompt: "Photorealistic food photography of Spicy Kimchi Stew (Kimchi-jjigae) with pork and tofu, boiling in a black stone pot, deep red broth, steam rising, high quality, professional studio lighting.",
         ingredients: [
             { name: "김치", amount: 150, unit: "g" },
             { name: "돼지고기", amount: 100, unit: "g" },
@@ -24,7 +24,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "비빔밥": {
         imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Korean Bibimbap in a stone bowl, colorful seasoned vegetables, sunny side up egg in center, red gochujang sauce, overhead shot, 8k resolution.",
+        illustrationPrompt: "Photorealistic food photography of Korean Bibimbap in a stone bowl, colorful seasoned vegetables, sunny side up egg in center, red gochujang sauce, top-down professional food styling, 8k resolution.",
         ingredients: [
             { name: "쌀밥", amount: 200, unit: "g" },
             { name: "콩나물", amount: 50, unit: "g" },
@@ -39,7 +39,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "제육볶음": {
         imageUrl: "https://images.unsplash.com/photo-1548152433-4df4529329c9?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Spicy Pork Bulgogi (Jeyuk-bokkeum) on a white plate, vibrant red spicy sauce, sesame seeds garnish, sizzling, close-up, appetizing.",
+        illustrationPrompt: "Photorealistic food photography of Spicy Pork Bulgogi (Jeyuk-bokkeum) on a ceramic plate, vibrant red spicy sauce, sesame seeds garnish, sizzling, professional food styling close-up.",
         ingredients: [
             { name: "돼지고기(앞다리살)", amount: 200, unit: "g" },
             { name: "양파", amount: 50, unit: "g" },
@@ -52,7 +52,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "김치전": {
         imageUrl: "https://images.unsplash.com/photo-1616422312675-9bad4d930fe6?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Crispy Kimchi Pancake (Kimchijeon), golden brown edges, red kimchi pieces visible, rustic wooden table background, delicious.",
+        illustrationPrompt: "Photorealistic food photography of Crispy Kimchi Pancake (Kimchijeon), golden brown crispy edges, red kimchi pieces visible, professional food styling on a rustic wooden table.",
         ingredients: [
             { name: "신김치", amount: 150, unit: "g" },
             { name: "부침가루", amount: 100, unit: "g" },
@@ -62,7 +62,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "뚝배기불고기": {
         imageUrl: "https://images.unsplash.com/photo-1628260412297-a3377e45006f?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Pot-stewed Bulgogi (Ttukbaegi-bulgogi), clear broth with beef and glass noodles, steam rising from earthen pot, hearty meal.",
+        illustrationPrompt: "Photorealistic food photography of Pot-stewed Bulgogi (Ttukbaegi-bulgogi), clear soy broth with beef and glass noodles, steam rising from black earthen pot, professional food styling.",
         ingredients: [
             { name: "소고기(불고기용)", amount: 150, unit: "g" },
             { name: "당면", amount: 30, unit: "g" },
@@ -73,7 +73,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "삼겹살 구이": {
         imageUrl: "https://images.unsplash.com/photo-1628260412297-a3377e45006f?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Grilled Pork Belly (Samgyeopsal) on a BBQ grill, golden crispy surface, fresh lettuce and garlic on side, top view.",
+        illustrationPrompt: "Photorealistic food photography of Grilled Pork Belly (Samgyeopsal) on a gas grill, golden crispy skin, fresh lettuce, garlic and ssamjang on side, 8k professional shot.",
         ingredients: [
             { name: "통삼겹살", amount: 200, unit: "g" },
             { name: "쌈장", amount: 30, unit: "g" },
@@ -85,7 +85,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "닭갈비": {
         imageUrl: "https://images.unsplash.com/photo-1548152433-4df4529329c9?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Spicy Stir-fried Chicken (Dakgalbi) in a large iron pan, cabbage and sweet potato, rich red sauce, sizzling hot.",
+        illustrationPrompt: "Photorealistic food photography of Spicy Stir-fried Chicken (Dakgalbi) in a large iron skillet, colorful cabbage and sweet potato, rich red spicy glaze, professional food styling.",
         ingredients: [
             { name: "닭다리살", amount: 200, unit: "g" },
             { name: "고구마", amount: 50, unit: "g" },
@@ -97,7 +97,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "순두부찌개": {
         imageUrl: "https://images.unsplash.com/photo-1583225214464-9296fae5dcd4?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Soft Tofu Stew (Sundubu-jjigae), spicy red broth, silky soft tofu, clams and egg yolk, boiling in stone pot, appetizing.",
+        illustrationPrompt: "Photorealistic food photography of Soft Tofu Stew (Sundubu-jjigae), vibrant red spicy broth, silky soft white tofu, clams and a fresh egg yolk, boiling hot in a stone pot.",
         ingredients: [
             { name: "순두부", amount: 350, unit: "g" },
             { name: "바지락", amount: 100, unit: "g" },
@@ -131,7 +131,7 @@ export const RECIPE_PRESETS: Record<string, { imageUrl: string, illustrationProm
     },
     "떡볶이": {
         imageUrl: "https://images.unsplash.com/photo-1583224964978-2257b960c3d3?auto=format&fit=crop&q=80&w=800",
-        illustrationPrompt: "Realistic food photography of Spicy Rice Cakes (Tteokbokki), thick red sauce, glossy rice cakes, fish cakes, boiled egg, street food vibe, high detail.",
+        illustrationPrompt: "Photorealistic food photography of Spicy Rice Cakes (Tteokbokki) in a bowl, thick glossy red sauce, green onions, boiled egg, professional commercial food shot.",
         ingredients: [
             { name: "떡볶이떡", amount: 200, unit: "g" },
             { name: "사각어묵", amount: 2, unit: "장" },

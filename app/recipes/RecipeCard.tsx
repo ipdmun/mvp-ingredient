@@ -35,7 +35,7 @@ export default function RecipeCard({ recipe, onDeleteSuccess, onEditSuccess }: R
         displayUrl = imageUrl;
     } else {
         // Fallback generic AI
-        const genericPrompt = `${recipe.name} delicious korean food illustration art high quality`;
+        const genericPrompt = `${recipe.name} delicious korean food, realistic food photography, high quality professional food styling, photorealistic, 8k`;
         displayUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(genericPrompt)}?width=800&height=400&nologo=true&model=flux&seed=${seed}`;
         isAi = true;
     }
