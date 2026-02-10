@@ -51,20 +51,24 @@ export default function PriceAnalysisModal({ isOpen, onClose, report, date }: Pr
                 <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto bg-gray-50/30">
                     <div className="space-y-3">
                         {report.map((line, idx) => {
-                            const isTitle = line.startsWith("💰") || line.startsWith("💡") || line.startsWith("✅") || line.startsWith("❓");
-                            const isInsight = line.startsWith("🎉") || line.startsWith("📉");
+                            const isSummary = line.startsWith("🔵") || line.startsWith("🔴") || line.startsWith("⚪") || line.startsWith("💰") || line.startsWith("💡") || line.startsWith("✅") || line.startsWith("❓");
+                            const isDetail = line.startsWith("💎") || line.startsWith("🔵") || line.startsWith("🔴") || line.startsWith("✨") || line.startsWith("🎉") || line.startsWith("📉");
 
                             return (
                                 <div
                                     key={idx}
-                                    className={`p-4 rounded-2xl border transition-all ${isTitle
-                                            ? "bg-white border-purple-100 shadow-sm"
-                                            : isInsight
-                                                ? "bg-purple-50/30 border-purple-50"
-                                                : "bg-transparent border-transparent text-gray-500 text-xs"
+                                    className={`p-4 rounded-2xl border transition-all ${isSummary
+                                        ? line.includes("🔴") ? "bg-red-50 border-red-100 shadow-sm"
+                                            : line.includes("🔵") ? "bg-blue-50 border-blue-100 shadow-sm"
+                                                : "bg-white border-purple-100 shadow-sm"
+                                        : isDetail
+                                            ? line.includes("🔴") ? "bg-red-50/30 border-red-50"
+                                                : line.includes("💎") ? "bg-blue-50/30 border-blue-50"
+                                                    : "bg-purple-50/30 border-purple-50"
+                                            : "bg-transparent border-transparent text-gray-500 text-xs text-center pb-2"
                                         }`}
                                 >
-                                    <p className={`${isTitle ? "font-black text-gray-900 text-base" : "text-sm text-gray-700 leading-relaxed font-medium"}`}>
+                                    <p className={`${isSummary ? "font-black text-gray-900 text-base" : "text-sm text-gray-700 leading-relaxed font-bold"}`}>
                                         {line}
                                     </p>
                                 </div>

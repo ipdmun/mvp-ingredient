@@ -362,7 +362,7 @@ export const generateBusinessReport = (items: any[]) => {
         finalReport.push(`🔴 사장님! 이번엔 평소보다 ${Math.round(Math.abs(netSavings)).toLocaleString()}원 더 지출하셨어요.`);
         finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 비싸며, 최저가 구매 시 한 달에 약 ${Math.round(monthlyProjection).toLocaleString()}원을 아낄 수 있어요!`);
     } else {
-        finalReport.push(`🔘 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
+        finalReport.push(`⚪ 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
     }
 
     finalReport.push(...businessReport);
