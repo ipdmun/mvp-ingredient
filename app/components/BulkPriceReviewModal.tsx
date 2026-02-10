@@ -11,7 +11,6 @@ type MarketAnalysis = {
     price: number;
     status: "BEST" | "GOOD" | "BAD";
     desc?: string;
-    desc?: string;
     link?: string;
     totalDiff?: number;
     marketUnit?: string;
@@ -98,7 +97,7 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         // Actually, let's use a cleaner approach. We can add `selectedCandidateIndex` to OCRItem?
         // Let's coerce `status` (which is string) to hold index? No, `status` is used for "BEST/GOOD".
         // Let's add `selectedCandidateIndex` to the mapped item in useEffect.
-        
+
         const currentIndex = (item as any).selectedCandidateIndex || 0;
         const newIndex = currentIndex > 0 ? currentIndex - 1 : item.marketAnalysis.candidates.length - 1;
         updateCandidate(idx, newIndex);
@@ -122,9 +121,9 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         // Unit Price Per User Unit
         let userUnitScale = 1;
         if (item.unit === 'kg' || item.unit === 'L') userUnitScale = 1000;
-        
+
         const marketUnitPrice = (candidate.perUnitPrice || 0) * userUnitScale;
-        const marketTotalForUserAmount = Math.round((candidate.perUnitPrice || 0) * (item.originalPrice && item.price ? (item.amount || 1) * userUnitScale : (item.amount || 1) * userUnitScale)); 
+        const marketTotalForUserAmount = Math.round((candidate.perUnitPrice || 0) * (item.originalPrice && item.price ? (item.amount || 1) * userUnitScale : (item.amount || 1) * userUnitScale));
         // Wait, logic check: 
         // item.amount (e.g. 15kg). perUnitPrice is per gram (since we divided by 1000 in naver.ts).
         // if perUnitPrice is e.g. 3.125 (won/g). 15kg = 15000g.
@@ -132,14 +131,14 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
         // User Amount is `item.amount` (e.g. 15).
         // If unit is kg, we need to multiply `item.amount` by 1000 to get grams?
         // Yes, `item.amount` is the number in `item.unit`.
-        
+
         let standardizedAmount = item.amount || 1;
         if (item.unit === 'kg' || item.unit === 'L') standardizedAmount *= 1000;
         // Piece logic? Assuming 'g' for now if not piece.
-        
+
         const newMarketTotal = Math.round((candidate.perUnitPrice || candidate.price) * standardizedAmount);
         // Fallback: if perUnitPrice is missing (shouldn't be), use price.
-        
+
         const newTotalDiff = (item.originalPrice || item.price) - newMarketTotal;
 
         newItems[itemIdx] = {
@@ -409,16 +408,47 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                                         <span className="text-[11px] text-gray-300">링크 없음</span>
                                                     )}
 
-                                                    {/* Diff Display: Loss/Profit */}
-                                                    {item.marketAnalysis.totalDiff !== undefined && (
-                                                        <div className="flex items-center gap-1 font-bold text-base">
-                                                            {item.marketAnalysis.totalDiff > 0 ? (
-                                                                <span className="text-red-500 flex items-center gap-1">손해 {item.marketAnalysis.totalDiff.toLocaleString()}원</span>
-                                                            ) : (
-                                                                <span className="text-blue-600 flex items-center gap-1">이익 {Math.abs(item.marketAnalysis.totalDiff).toLocaleString()}원</span>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        {/* Candidate Navigation */}
+                                                        {item.marketAnalysis.candidates && item.marketAnalysis.candidates.length > 1 && (
+                                                            <div className="flex items-center gap-1 bg-white border border-gray-100 rounded-lg p-0.5 shadow-sm">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handlePrevCandidate(idx);
+                                                                    }}
+                                                                    className="p-1 hover:bg-gray-50 rounded text-gray-400 hover:text-blue-600 transition-all"
+                                                                    title="이전 최저가"
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                                                                </button>
+                                                                <span className="text-[10px] font-bold text-gray-500 min-w-[32px] text-center tabular-nums">
+                                                                    {((item as any).selectedCandidateIndex || 0) + 1} / {item.marketAnalysis.candidates.length}
+                                                                </span>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleNextCandidate(idx);
+                                                                    }}
+                                                                    className="p-1 hover:bg-gray-50 rounded text-gray-400 hover:text-blue-600 transition-all"
+                                                                    title="다음 최저가"
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                                                                </button>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Diff Display: Loss/Profit */}
+                                                        {item.marketAnalysis.totalDiff !== undefined && (
+                                                            <div className="flex items-center gap-1 font-bold text-base whitespace-nowrap">
+                                                                {item.marketAnalysis.totalDiff > 0 ? (
+                                                                    <span className="text-red-500 flex items-center gap-1">손해 {item.marketAnalysis.totalDiff.toLocaleString()}원</span>
+                                                                ) : (
+                                                                    <span className="text-blue-600 flex items-center gap-1">이익 {Math.abs(item.marketAnalysis.totalDiff).toLocaleString()}원</span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : (
