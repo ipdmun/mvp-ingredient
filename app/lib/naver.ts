@@ -231,36 +231,43 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
     }
 
     // 4. Calculate Total Price Difference (User's Total vs Market's Total for SAME amount)
-    // User Total: price (e.g. 24,000 for 5kg)
-    // Market Total: naverUnitPrice * amount (e.g. 4,900 * 5 = 24,500)
+    // naverUnitPrice is currently "per standard unit" (per gram if kg/l, per piece if pieces).
 
-    const marketTotalForUserAmount = naverUnitPrice * (amount > 0 ? amount : 1);
+    let standardizedAmount = amount > 0 ? amount : 1;
+    if (lowerUnit === 'kg' || lowerUnit === 'l') {
+        standardizedAmount = standardizedAmount * 1000;
+    } else if (isPieceUnit) {
+        const std = getStandardWeight(name);
+        if (std) standardizedAmount = standardizedAmount * std.weight;
+    }
+
+    const marketTotalForUserAmount = Math.round(naverUnitPrice * standardizedAmount);
     const totalDiff = price - marketTotalForUserAmount;
-    // If totalDiff < 0: User Paid LESS (Saved).
-    // If totalDiff > 0: User Paid MORE (Loss).
+
+    // Calculate Price Per User's Unit (for UI Display)
+    // e.g. if User Unit is kg, we want Price Per Kg (3125), not Price Per Gram (3.125).
+    let marketPricePerUserUnit = naverUnitPrice;
+    if (lowerUnit === 'kg' || lowerUnit === 'l') {
+        marketPricePerUserUnit = naverUnitPrice * 1000;
+    }
 
     // Status Determination
     let status: "BEST" | "GOOD" | "BAD" = "GOOD";
-    // Thresholds could be percentage based or absolute value. 
-    // Let's use 5% or 1000 KRW as a simple significant threshold?
-    // Existing logic used 500 unit diff? Let's stick to simple logic or refine.
-    // Let's use the totalDiff.
-
-    if (totalDiff <= -100) status = "BEST"; // Saved at least 100 won
-    else if (totalDiff >= 100) status = "BAD"; // Paid at least 100 won more
+    if (totalDiff <= -100) status = "BEST";
+    else if (totalDiff >= 100) status = "BAD";
     else status = "GOOD";
 
     return {
         cheapestSource: bestMatch.source,
         price: marketPrice,
         status: status,
-        diff: diff, // Keeping unit-based diff for compatibility if needed, OR we can deprecate it.
+        diff: diff,
 
         // [New Fields for UI]
-        totalDiff: totalDiff, // Raw value
-        marketUnit: lowerUnit, // The unit used for calculation (e.g. 'kg')
-        marketUnitPrice: naverUnitPrice, // Standardized Unit Price (e.g. 4,900)
-        marketTotalForUserAmount: marketTotalForUserAmount, // 24,500
+        totalDiff: totalDiff,
+        marketUnit: lowerUnit,
+        marketUnitPrice: marketPricePerUserUnit, // Return price matching the user's unit (e.g. per kg)
+        marketTotalForUserAmount: marketTotalForUserAmount,
 
         link: bestMatch.link,
         cheapestLink: bestMatch.link,
