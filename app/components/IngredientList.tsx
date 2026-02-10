@@ -408,7 +408,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                             </div>
 
                             <div className="space-y-4 pl-8"> {/* Add padding left for checkbox space */}
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-inner border border-blue-100/50 overflow-hidden shrink-0">
                                             {getIngredientIcon(item.name).startsWith("/") ? (
@@ -423,25 +423,27 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right shrink-0 min-w-[150px]">
+                                    <div className="text-right shrink-0 ml-2">
                                         <div className="flex flex-col items-end gap-1">
                                             {/* Recent History Detail - Priority 1 */}
                                             {latestPrice && (
-                                                <p className="text-[11px] text-gray-900 font-bold whitespace-nowrap">
+                                                <p className="text-[10px] sm:text-[11px] text-gray-900 font-bold whitespace-nowrap leading-tight">
                                                     {formatDate(latestPrice.recordedAt)}일 구매 내역 : {' '}
                                                     <span className="text-blue-600">
                                                         {latestPrice.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : ''}
                                                         {' '}
                                                         {latestPrice.totalPrice ? `${latestPrice.totalPrice.toLocaleString()}원` : ''}
-                                                        ({Math.round(convertPriceForDisplay(latestPrice.price, latestPrice.unit, displayUnit)).toLocaleString()}원/{displayUnit})
+                                                        <span className="text-[9px] sm:text-[10px] opacity-80 decoration-0 ml-0.5">
+                                                            ({Math.round(convertPriceForDisplay(latestPrice.price, latestPrice.unit, displayUnit)).toLocaleString()}원/{displayUnit})
+                                                        </span>
                                                     </span>
                                                 </p>
                                             )}
 
                                             {/* Unit Price Title - Priority 2 */}
                                             <div className="flex items-center gap-1.5 mt-0.5">
-                                                <span className="text-[10px] text-gray-400 font-bold bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">최근 1달 단가</span>
-                                                <p className="text-base sm:text-lg font-black text-gray-900">
+                                                <span className="text-[9px] text-gray-400 font-bold bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap">최근 1달 단가</span>
+                                                <p className="text-sm sm:text-base font-black text-gray-900 whitespace-nowrap">
                                                     {latest > 0
                                                         ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', displayUnit)).toLocaleString()}원/${displayUnit}`
                                                         : "기록 없음"
