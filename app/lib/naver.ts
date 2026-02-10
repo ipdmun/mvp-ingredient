@@ -325,7 +325,7 @@ export const generateBusinessReport = (items: any[]) => {
                         businessReport.push(`🔴 ${item.name}: 시장가보다 ${costDiff}원 더 비싸게 구매하셨어요. (${amountCtx})`);
                         totalLoss += diff;
                     } else if (Math.abs(diff) > 5000 || (item.originalPrice > 0 && Math.abs(diff) / item.originalPrice > 0.2)) {
-                        businessReport.push(`✨💎✨ ${item.name}: 시장가보다 무려 ${costDiff}원이나 저렴하게 득템하셨네요! (${amountCtx})`);
+                        businessReport.push(`💎 ${item.name}: 시장가보다 무려 ${costDiff}원이나 저렴하게 득템하셨네요! (${amountCtx})`);
                         totalSavings += Math.abs(diff);
                     } else {
                         businessReport.push(`🔵 ${item.name}: 시장가보다 ${costDiff}원 저렴하게 잘 구매하셨어요. (${amountCtx})`);
@@ -354,7 +354,7 @@ export const generateBusinessReport = (items: any[]) => {
         finalReport.push(`🔴 사장님! 이번엔 평소보다 ${Math.round(Math.abs(netSavings)).toLocaleString()}원 더 지출하셨어요.`);
         finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 비싸며, 최저가 구매 시 한 달에 약 ${Math.round(monthlyProjection).toLocaleString()}원을 아낄 수 있어요!`);
     } else {
-        finalReport.push(`⚪ 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
+        finalReport.push(`🔘 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
     }
 
     finalReport.push(...businessReport);
