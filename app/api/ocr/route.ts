@@ -273,7 +273,7 @@ export async function POST(request: Request) {
 
             // Create specific insight for significant differences
             if (marketAnalysis && Math.abs(marketAnalysis.diff) > 1000) {
-                const diff = marketAnalysis.diff;
+                const diff = Math.round(marketAnalysis.diff);
                 if (diff > 0) {
                     businessReport.push(`📉 ${cleanName}: 평소보다 ${diff.toLocaleString()}원 비싸게 구매하셨어요. 다음엔 ${marketAnalysis.cheapestSource} 확인해보세요!`);
                 } else {
@@ -314,12 +314,14 @@ export async function POST(request: Request) {
             finalReport.push(`직접 단가를 입력하여 정확한 분석을 받아보세요.`);
         } else if (netSavings > 0) {
             // Savings Case
-            finalReport.push(`💰 사장님! 이번 장보기로 ${netSavings.toLocaleString()}원을 아끼셨네요!`);
-            finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 저렴하며, 한 달이면 약 ${monthlyProjection.toLocaleString()}원을 절약하실 수 있어요.`);
+            const roundedSavings = Math.round(netSavings);
+            finalReport.push(`💰 사장님! 이번 장보기로 ${roundedSavings.toLocaleString()}원을 아끼셨네요!`);
+            finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 저렴하며, 한 달이면 약 ${Math.round(monthlyProjection).toLocaleString()}원을 절약하실 수 있어요.`);
         } else if (netSavings < 0) {
             // Loss Case
-            finalReport.push(`💡 사장님! 이번엔 평소보다 ${Math.abs(netSavings).toLocaleString()}원 더 지출하셨어요.`);
-            finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 비싸며, 최저가 구매 시 한 달에 약 ${monthlyProjection.toLocaleString()}원을 아낄 수 있어요!`);
+            const roundedLoss = Math.round(Math.abs(netSavings));
+            finalReport.push(`💡 사장님! 이번엔 평소보다 ${roundedLoss.toLocaleString()}원 더 지출하셨어요.`);
+            finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 비싸며, 최저가 구매 시 한 달에 약 ${Math.round(monthlyProjection).toLocaleString()}원을 아낄 수 있어요!`);
         } else {
             // Similar Case (netSavings === 0)
             finalReport.push(`✅ 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);

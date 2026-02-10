@@ -1,191 +1,137 @@
 import { getStandardWeight } from "./recipeUtils";
 
-export const fetchNaverPrice = async (queryName: string): Promise<{ price: number, source: string, link: string }[] | null> => {
+// Keywords to exclude (Machines, Seeds, Snacks, Processed foods, etc.)
+const EXCLUDED_KEYWORDS = [
+    "기계", "이절기", "다듬기", "씨앗", "모종", "비료", "화분", "농약", "제초제", "절단기", "호미", "삽", // Agriculture tools
+    "메이커", "제조기", "슬라이서", "채칼", "거치대", "받침대", "모형", "장난감", "껍질", "세척기", "탈피기", // Kitchen tools
+    "과자", "스낵", "칩", "안주", "말랭이", "젤리", "사탕", "초콜릿", "쫀드기", "쫄면", "떡볶이", "빵", "케이크", "쿠키", // Processed Snacks
+    "분말", "가루", "파우더", "엑기스", "농축", "즙", "청", "오일", "향", "맛", "시럽", // Processed Ingredients & Flavorings
+    "소스", "양념", "드레싱", "시즈닝", // Sauces
+    "추억", "간식", "주전부리", "답례품", "선물세트", "홍보", "판촉", "인쇄", "스티커", // Marketing keywords for snacks
+    "곤약", "실곤약", "면", "누들", "국수", "다이어트", "체중", // Diet foods
+    // Non-food Containers/Packaging (Crucial for filtering "Onion Bag" vs "Onion")
+    "양파망", "빈병", "공병", "빈박스", "공박스", "용기", "케이스", "바구니", "봉투", "비닐", "포장지", "박스만", "트레이", "자루", "그물",
+    // Non-Food Items (Toys, Education, Stationery, Masks) - Fix for "Pork Mask" & "Cabbage Toy"
+    "마스크", "우드", "팬시", "문구", "완구", "교구", "학습", "교재", "MDF", "부자재", "만들기", "장식", "가짜", "모형", "사료", "키링", "열쇠고리",
+    // Processed Meals (Exclude "Rice Bowl" when searching for "Pork")
+    "덮밥", "볶음밥", "컵밥", "도시락", "무침", "반찬", "절임", "장아찌", "튀김", "밀키트", "쿠킹박스", "짜사이", "자차이", "가공", "완제",
+    // Beverages & Health Foods (Strictly exclude unless requested)
+    "티백", "차류", "액상", "스틱", "환", "정", "캡슐", "진액", "건강식품", "호박차", "팥차", "율무차", "생강차", "대추차", "쌍화차", "유자차", "매실차", "오미자차", "식혜", "수정과"
+];
+
+// Keywords that indicate processed/beverage products. 
+const BEVERAGE_KEYWORDS = ["차", "즙", "주스", "에이드", "라떼", "음료", "드링크", "수"];
+
+/**
+ * Parses weight/quantity from Naver product titles.
+ * e.g. "양파 5kg" -> { amount: 5, unit: "kg" }
+ */
+export const parseWeightFromTitle = (title: string, ingredientName: string): { amount: number, unit: string } | null => {
+    const lowerTitle = title.toLowerCase();
+
+    // 1. Check for explicit weight (kg, g, L, ml)
+    const weightMatch = lowerTitle.match(/(\d+(\.\d+)?)\s*(kg|g|l|ml|ml)/i);
+    if (weightMatch) {
+        return { amount: parseFloat(weightMatch[1]), unit: weightMatch[3].toLowerCase() };
+    }
+
+    // 2. Check for count/units (단, 망, 박스, 개, 포기, 모, 봉)
+    const unitMatch = lowerTitle.match(/(\d+)\s*(단|망|박스|개|포기|모|봉)/);
+    if (unitMatch) {
+        const amount = parseInt(unitMatch[1], 10);
+        const unit = unitMatch[2];
+
+        const std = getStandardWeight(ingredientName);
+        if (std) {
+            return { amount: amount * std.weight, unit: 'g' };
+        }
+        return { amount, unit };
+    }
+
+    // 3. Standalone units
+    const standaloneMatch = lowerTitle.match(/(단|망|박스|개|포기|모|봉)/);
+    if (standaloneMatch) {
+        const unit = standaloneMatch[1];
+        const std = getStandardWeight(ingredientName);
+        if (std) {
+            return { amount: std.weight, unit: 'g' };
+        }
+        return { amount: 1, unit };
+    }
+
+    return null;
+};
+
+export const fetchNaverPrice = async (queryName: string, ingredientName?: string): Promise<{ price: number, source: string, link: string, parsedAmount?: number, parsedUnit?: string }[] | null> => {
     const naverClientId = process.env.NAVER_CLIENT_ID;
     const naverClientSecret = process.env.NAVER_CLIENT_SECRET;
 
     if (!naverClientId || !naverClientSecret) return null;
 
-    // Keywords to exclude (Machines, Seeds, Snacks, Processed foods, etc.)
-    const EXCLUDED_KEYWORDS = [
-        "기계", "이절기", "다듬기", "씨앗", "모종", "비료", "화분", "농약", "제초제", "절단기", "호미", "삽", // Agriculture tools
-        "메이커", "제조기", "슬라이서", "채칼", "거치대", "받침대", "모형", "장난감", "껍질", "세척기", "탈피기", // Kitchen tools
-        "과자", "스낵", "칩", "안주", "말랭이", "젤리", "사탕", "초콜릿", "쫀드기", "쫄면", "떡볶이", "빵", "케이크", "쿠키", // Processed Snacks
-        "분말", "가루", "파우더", "엑기스", "농축", "즙", "청", "오일", "향", "맛", "시럽", // Processed Ingredients & Flavorings
-        "소스", "양념", "드레싱", "시즈닝", // Sauces
-        "추억", "간식", "주전부리", "답례품", "선물세트", "홍보", "판촉", "인쇄", "스티커", // Marketing keywords for snacks
-        "곤약", "실곤약", "면", "누들", "국수", "다이어트", "체중", // Diet foods
-        // Non-food Containers/Packaging (Crucial for filtering "Onion Bag" vs "Onion")
-        "양파망", "빈병", "공병", "빈박스", "공박스", "용기", "케이스", "바구니", "봉투", "비닐", "포장지", "박스만", "트레이", "자루", "그물",
-        // Non-Food Items (Toys, Education, Stationery, Masks) - Fix for "Pork Mask" & "Cabbage Toy"
-        "마스크", "우드", "팬시", "문구", "완구", "교구", "학습", "교재", "MDF", "부자재", "만들기", "장식", "가짜", "모형", "사료", "키링", "열쇠고리",
-        // Processed Meals (Exclude "Rice Bowl" when searching for "Pork")
-        "덮밥", "볶음밥", "컵밥", "도시락", "무침", "반찬", "절임", "장아찌", "튀김", "밀키트", "쿠킹박스", "짜사이", "자차이", "가공", "완제",
-        // Beverages & Health Foods (Strictly exclude unless requested)
-        "티백", "차류", "액상", "스틱", "환", "정", "캡슐", "진액", "건강식품", "호박차", "팥차", "율무차", "생강차", "대추차", "쌍화차", "유자차", "매실차", "오미자차", "식혜", "수정과"
-    ];
-
-    // Keywords that indicate processed/beverage products. 
-    // If the User's Query does NOT contain these, we should strongly exclude items that DO.
-    const BEVERAGE_KEYWORDS = ["차", "즙", "주스", "에이드", "라떼", "음료", "드링크", "수"];
-
     try {
         const query = encodeURIComponent(queryName);
-        // console.log(`[NaverAPI] Querying: ${queryName}`);
-
-        // [Key Improvement]: Use sort='sim' (Relevance/Accuracy) instead of 'asc' (Lowest Price)
-        // 'asc' often returns irrelevant cheap items (hooks, scales) for generic queries like "Mu".
-        // 'sim' returns relevant items first (like "Radish").
-        // We fetch 100 items (max) to increase the chance of finding cheap ones among relevant ones.
         const apiRes = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${query}&display=100&start=1&sort=sim`, {
             headers: {
                 "X-Naver-Client-Id": naverClientId,
                 "X-Naver-Client-Secret": naverClientSecret
             },
-            next: { revalidate: 3600 } // Cache for 1 hour
+            next: { revalidate: 3600 }
         });
 
-        if (!apiRes.ok) {
-            // console.error(`[NaverAPI] Error: ${apiRes.status} ${apiRes.statusText}`);
-            return null;
-        }
+        if (!apiRes.ok) return null;
 
         const data = await apiRes.json();
-        // console.log(`[NaverAPI] Raw Items Found: ${data.items ? data.items.length : 0}`);
-
-        const validItems: { price: number, source: string, link: string }[] = [];
+        const validItems: { price: number, source: string, link: string, parsedAmount?: number, parsedUnit?: string }[] = [];
 
         if (data.items && data.items.length > 0) {
-            // Filter Loop (Collect ALL valid items)
             for (const item of data.items) {
-                // Clean Title (Remove HTML tags like <b>)
                 let title = item.title.toLowerCase().replace(/<[^>]+>/g, "");
-                // Naver returns category1, category2, category3, category4
                 const categories = [item.category1, item.category2, item.category3, item.category4].filter(Boolean).join(" ");
                 const price = parseInt(item.lprice, 10);
 
-                // 1. Minimum Price Check
                 if (price < 100) continue;
+                if (EXCLUDED_KEYWORDS.some(keyword => title.includes(keyword))) continue;
 
-                // 2. Keyword Exclusion
-                if (EXCLUDED_KEYWORDS.some(keyword => title.includes(keyword))) {
-                    // console.log(`[Filter] Excluded by Keyword: ${title}`);
-                    continue;
-                }
-
-                // [Smart Beverage Exclusion]
-                // If user is NOT searching for a beverage (query doesn't contain "차", "즙", etc.),
-                // but the item title IS a beverage (contains "호박차", "사과즙" etc.), exclude it.
-                // Note: We check if `title` ends with "차" or contains "차 " to avoid false positives like "차돌박이" (Beef Brisket).
-                // However, "호박차" is clear.
                 const isQueryBeverage = BEVERAGE_KEYWORDS.some(k => queryName.includes(k));
                 if (!isQueryBeverage) {
-                    // Exclude specific known teas/juices matching the ingredient name
-                    if (title.includes("차") && !title.includes("차돌") && !title.includes("멸치")) {
-                        // "차" is risky (matches "녹차", "자동차"). 
-                        // Safer: Check category (done below) or specific phrasing.
-                        // Let's rely on specific excluded keywords ("호박차", "팥차") added above for now, 
-                        // and category filtering.
-                    }
-                    if (BEVERAGE_KEYWORDS.some(k => title.includes(k)) && !title.includes("배추") && !title.includes("고추")) {
-                        // "배추" contains "주" (Juice keyword '주스' check? No '주' is not in list).
-                        // "고추" contains "추" (not in list).
-                        // Safe to rely on category.
-                    }
+                    if (BEVERAGE_KEYWORDS.some(k => title.includes(k)) && !title.includes("배추") && !title.includes("고추")) continue;
                 }
 
-                // [Exclusion: Price Comparison / Catalog Bundles]
-                // "네이버" mallName usually indicates a catalog page (price comparison).
-                // productType '1' -> General Product. '2' -> SmartStore/Window (likely ok). '3' -> Rental.
-                // We STRICTLY exclude "네이버" (Catalogs), but we RELAX productType check to allow more items.
-                if (item.mallName === "네이버") {
-                    console.log(`[Filter] Excluded by Catalog (Naver Mall): ${title}`);
-                    continue;
-                }
-                // (Relaxed ProductType check: Removed strict '=== 1' check to allow Window/SmartStore items)
+                if (item.mallName === "네이버") continue;
 
-                // 3. Category Check
-                // MUST contain food-related keywords in the category path.
-                // Strict check: If it contains "주방용품", "가전", "생활", it's risky unless "식품" is explicitly there.
-
-                // [Strict Category Filter]
-                // Only allow items where the Primary Category (category1) is clearly "Food" or related.
-                // This eliminates "Living/Health" > "Kitchen" (Onion Bag), "Stationery" (Fancy), "Toys" (Wood)
                 const validCategory1 = ["식품", "출산/육아", "농산물", "축산물", "수산물"];
-                const isFoodCategory = validCategory1.some(cat => item.category1.includes(cat));
+                if (!validCategory1.some(cat => item.category1.includes(cat))) continue;
 
-                if (!isFoodCategory) {
-                    // console.log(`[Filter] Excluded by Non-Food Category: ${title} (${item.category1})`);
-                    continue; // Skip non-food categories entirely
-                }
-
-                // [Negative Filter] Explicitly exclude non-food categories even if they contain "식품" (e.g. "식품보관용기")
                 const EXCLUDED_CATEGORIES = ["주방용품", "수납", "정리", "원예", "자재", "비료", "농기구", "식기", "그릇", "냄비", "조리도구", "포장", "용기", "잡화", "문구", "완구", "교구", "서적", "출산", "육아", "취미", "반려동물", "공구", "산업", "가렌드", "파티"];
-                // Add Beverage categories if query doesn't look like a beverage
                 const BEVERAGE_CATEGORIES = ["차류", "건강식품", "음료", "커피", "전통차", "허브차", "홍차", "녹차", "다이어트식품", "건강환", "건강즙", "건강분말"];
 
-                if (!isQueryBeverage) {
-                    if (BEVERAGE_CATEGORIES.some(badCat => categories.includes(badCat))) {
-                        // console.log(`[Filter] Excluded by Beverage Category: ${title} (${categories})`);
-                        continue;
-                    }
-                }
+                if (!isQueryBeverage && BEVERAGE_CATEGORIES.some(badCat => categories.includes(badCat))) continue;
+                if (EXCLUDED_CATEGORIES.some(badCat => categories.includes(badCat))) continue;
 
-                if (EXCLUDED_CATEGORIES.some(badCat => categories.includes(badCat))) {
-                    // console.log(`[Filter] Excluded by Bad Category: ${title} (${categories})`);
-                    continue;
-                }
-
-                // 4. Title Match Check (Relaxed)
-                // The title MUST contain ALL keywords from the query.
-                // e.g. Query: "배추 20kg" -> Title must contain "배추" AND "20kg"
                 const queryParts = queryName.toLowerCase().split(/\s+/).filter(Boolean);
-                const titleLower = title.toLowerCase(); // Title already lowercased and stripped of tags
+                if (!queryParts.every(part => title.includes(part))) continue;
 
-                const allKeywordsMatch = queryParts.every(part => titleLower.includes(part));
-
-                if (!allKeywordsMatch) {
-                    // console.log(`[Filter] Excluded by Title Match: ${title} (Query: ${queryName})`);
-                    continue;
-                }
-
-                // Valid Item Found! Add to list.
+                const parsed = parseWeightFromTitle(title, ingredientName || queryName);
                 validItems.push({
                     price: price,
                     source: `네이버최저가(${item.mallName || '쇼핑몰'})`,
-                    link: item.link
+                    link: item.link,
+                    parsedAmount: parsed?.amount,
+                    parsedUnit: parsed?.unit
                 });
             }
         }
 
-        // console.log(`[NaverAPI] Valid Items before Check: ${validItems.length}`);
-
-        // If generic query "Mu" returns 100 relevant items, we sort them by PRICE ASCENDING to find the cheapest relevant one.
         if (validItems.length > 0) {
             validItems.sort((a, b) => a.price - b.price);
-
-            // [Outlier Filtering]
-            // Remove the absolute Cheapest (Min) and Most Expensive (Max) items to filter outliers.
-            // Only apply if we have enough data (>= 5 items) to avoid emptying the list too much.
             if (validItems.length >= 5) {
-                // Remove first (Min) and last (Max)
-                // Since it's sorted by price ASC: validItems[0] is Min, validItems[length-1] is Max.
-                // We keep the middle range.
-                // However, user wants to find the CHEAPEST VALID price.
-                // If we remove the cheapest, we might remove the TRUE best deal.
-                // But user explicitly asked: "Exclude Max and Min to filter outliers".
-                // So we will respect that request for robustness.
-                // Example: [100, 200, 300, 400, 10000] -> Remove 100 and 10000 -> [200, 300, 400]
-                // 100 might be an accessory/error.
-                validItems.shift(); // Remove Min
-                validItems.pop();   // Remove Max
+                validItems.shift();
+                validItems.pop();
             }
-
-            return validItems.slice(0, 20); // Return top 20 candidates for user selection
+            return validItems.slice(0, 20);
         }
-
     } catch (error) {
-        // console.error("Naver API Fetch Error:", error);
+        console.error("Naver API Fetch Error:", error);
     }
     return null;
 };
@@ -206,36 +152,20 @@ const STATIC_MARKET_PRICES: Record<string, { price: number, source: string, link
 };
 
 export const getMarketAnalysis = async (name: string, price: number, unit: string, amount: number) => {
-    // 1. Construct Search Queries
-    // Strategy: Try specific "Name + Amount + Unit" first (e.g. "Onion 10kg"), if that fails, try "Name".
-
-    let searchQueries: string[] = [];
-
-    // [Fix Single Char Query Issue for "getMarketAnalysis"]
-    // If name is "무", alias it here too just in case (though fetchNaverPrice handles it internally now)
-    // But expanding queries logic uses original name.
-
-    // [Fix] Sanitize Name: Take only the main part before comma or parenthesis
-    // e.g. "호박(애호박, 데친것)" -> "호박"
-    // e.g. "호박, 애호박, 데친것" -> "호박"
     const sanitizedName = name.split(/[,(]/)[0].trim();
-
-    // If unit is standard weight/volume, prioritize specific search
-    // Expanded units to include common market units (Bundle, Net, Box, EA, Head, Tofu count)
+    let searchQueries: string[] = [];
     const validUnits = ['kg', 'g', 'L', 'ml', '단', '망', '박스', '개', '포기', '모', '봉'];
     if (amount > 0 && validUnits.includes(unit)) {
         searchQueries.push(`${sanitizedName} ${amount}${unit}`);
     }
-    searchQueries.push(sanitizedName); // Fallback
+    searchQueries.push(sanitizedName);
 
-    let marketDataList: { price: number, source: string, link: string }[] | null = null;
+    let marketDataList: { price: number, source: string, link: string, parsedAmount?: number, parsedUnit?: string }[] | null = null;
     let matchType: 'specific' | 'fallback' = 'fallback';
 
     for (const query of searchQueries) {
-        marketDataList = await fetchNaverPrice(query);
+        marketDataList = await fetchNaverPrice(query, sanitizedName);
         if (marketDataList && marketDataList.length > 0) {
-            // Check if this was a specific query match
-            // query matches specifically if it matches the first query in list (amount included scenario)
             if (amount > 0 && query === searchQueries[0] && searchQueries.length > 1) {
                 matchType = 'specific';
             }
@@ -245,52 +175,65 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
 
     if (!marketDataList || marketDataList.length === 0) return null;
 
-    // Use the best match (cheapest) for main analysis
     const bestMatch = marketDataList[0];
     const marketPrice = bestMatch.price;
     let diff = 0;
 
-    // Check query strategy result
-    // If we matched specific quantity (e.g. "Onion 15kg"), Naver result is Total Price for 15kg.
-    // If we matched fallback (e.g. "Onion"), Naver result is likely Cheapest Unit Price (1kg or 1ea).
+    let userUnitPrice = amount > 0 ? price / amount : price;
+    const lowerUnit = unit.toLowerCase().trim();
+    const isPieceUnit = /개|ea|piece|모|봉|단|포기/i.test(lowerUnit);
 
-    if (matchType === 'specific') {
-        const totalDiff = price - marketPrice;
-        // Normalize to Unit Diff so downstream logic works consistently
-        diff = (amount > 0) ? totalDiff / amount : totalDiff;
-    } else {
-        // Fallback Match: 
-        // Naver's price is often total price (e.g. 27,000 for 1kg).
-        // If we don't know the Naver unit, comparing against user price is risky.
-        // For fallback, we compare user's UNIFIED unit price.
+    if (isPieceUnit) {
+        const std = getStandardWeight(name);
+        if (std) {
+            userUnitPrice = userUnitPrice / std.weight;
+        }
+    } else if (lowerUnit === 'kg' || lowerUnit === 'l') {
+        userUnitPrice = userUnitPrice / 1000;
+    }
 
-        let userUnitPrice = amount > 0 ? price / amount : price;
+    let naverUnitPrice = bestMatch.price;
+    if (bestMatch.parsedAmount && bestMatch.parsedAmount > 0) {
+        naverUnitPrice = bestMatch.price / bestMatch.parsedAmount;
+        if (bestMatch.parsedUnit === 'kg' || bestMatch.parsedUnit === 'l') {
+            naverUnitPrice = naverUnitPrice / 1000;
+        }
+    } else if (matchType === 'specific' && amount > 0) {
+        // Fallback: If we searched "Onion 10kg" and got a result but couldn't parse 10kg from title.
+        // DANGER: If Naver result is actually 1kg (4,900) but we assume it's 10kg, we get a huge error.
+        // Fix: Only assume it matches the query quantity IF the price is high enough to be that quantity.
+        // e.g. If user bought 10kg for 30,000, and Naver is 25,000, it's likely 10kg.
+        // If Naver is 4,900, it's likely 1kg.
 
-        // [New Piece Logic]
-        // If the user's unit is piece-based, normalize it to g for a fair comparison with market's likely unit price
-        const lowerUnit = unit.toLowerCase().trim();
-        const isPieceUnit = /개|ea|piece|모|봉|단|포기/i.test(lowerUnit);
-        if (isPieceUnit) {
-            const std = getStandardWeight(name);
-            if (std) {
-                userUnitPrice = userUnitPrice / std.weight; // per piece -> per g
-            }
+        const isSuspiciouslyLow = bestMatch.price < (userUnitPrice * amount * 0.3); // Less than 30% of expected total? Likely a smaller unit.
+
+        if (isSuspiciouslyLow) {
+            // Treat as "per unit" (1kg or 1ea) instead of normalizing by 'amount'
+            naverUnitPrice = bestMatch.price;
+        } else {
+            naverUnitPrice = bestMatch.price / amount;
         }
 
-        // Strategy: If Naver price is > 3x user unit price, it's likely a total price.
-        // We skip diff calculation to avoid crazy numbers like -26,900.
-        if (marketPrice > userUnitPrice * 3) {
-            diff = 0; // Skip diff
-        } else {
-            diff = userUnitPrice - marketPrice;
+        if (lowerUnit === 'kg' || lowerUnit === 'l') {
+            naverUnitPrice = naverUnitPrice / 1000;
+        }
+    }
+
+    diff = userUnitPrice - naverUnitPrice;
+
+    if (lowerUnit === 'kg' || lowerUnit === 'l') {
+        diff = diff * 1000;
+    } else if (isPieceUnit) {
+        const std = getStandardWeight(name);
+        if (std) {
+            diff = diff * std.weight;
         }
     }
 
     let status: "BEST" | "GOOD" | "BAD" = "GOOD";
-
-    if (diff <= -500) status = "BEST";   // Cheaper by 500+
-    else if (diff >= 500) status = "BAD"; // Expensive by 500+
-    else status = "GOOD"; // Similar
+    if (diff <= -500) status = "BEST";
+    else if (diff >= 500) status = "BAD";
+    else status = "GOOD";
 
     return {
         cheapestSource: bestMatch.source,
@@ -300,6 +243,6 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         link: bestMatch.link,
         cheapestLink: bestMatch.link,
         marketDataRaw: bestMatch,
-        candidates: marketDataList // [New Feature] Return all candidates for user selection
+        candidates: marketDataList
     };
 };
