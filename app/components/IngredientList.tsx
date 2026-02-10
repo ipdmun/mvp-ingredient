@@ -496,7 +496,7 @@ export default function IngredientList({ initialIngredients }: Props) {
 
                                                                 {/* Context Explanation */}
                                                                 <p className="text-[10px] text-gray-400 mt-1">
-                                                                    * {item.amount}{item.unit} 구매 기준 환산 금액입니다.
+                                                                    * {item.prices[0]?.amount || 1}{item.unit} 구매 기준 환산 금액입니다.
                                                                 </p>
                                                             </div>
                                                         )}
