@@ -318,7 +318,15 @@ export const generateBusinessReport = (items: any[]) => {
                 const diff = Math.round(analysis.totalDiff);
                 const isLoss = diff > 0;
                 const costDiff = Math.abs(diff).toLocaleString();
-                const amountCtx = item.amount && item.unit ? `${item.amount}${item.unit} 기준` : '구매량 기준';
+
+                // Convert g to kg for display to keep numbers readable
+                let displayAmount = item.amount;
+                let displayUnit = item.unit;
+                if (item.unit === 'g' && item.amount >= 100) {
+                    displayAmount = item.amount / 1000;
+                    displayUnit = 'kg';
+                }
+                const amountCtx = displayAmount && displayUnit ? `${displayAmount}${displayUnit} 기준` : '구매량 기준';
 
                 if (Math.abs(diff) > 100) {
                     if (isLoss) {
