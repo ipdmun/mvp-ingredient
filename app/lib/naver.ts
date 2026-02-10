@@ -230,16 +230,38 @@ export const getMarketAnalysis = async (name: string, price: number, unit: strin
         }
     }
 
+    // 4. Calculate Total Price Difference (User's Total vs Market's Total for SAME amount)
+    // User Total: price (e.g. 24,000 for 5kg)
+    // Market Total: naverUnitPrice * amount (e.g. 4,900 * 5 = 24,500)
+
+    const marketTotalForUserAmount = naverUnitPrice * (amount > 0 ? amount : 1);
+    const totalDiff = price - marketTotalForUserAmount;
+    // If totalDiff < 0: User Paid LESS (Saved).
+    // If totalDiff > 0: User Paid MORE (Loss).
+
+    // Status Determination
     let status: "BEST" | "GOOD" | "BAD" = "GOOD";
-    if (diff <= -500) status = "BEST";
-    else if (diff >= 500) status = "BAD";
+    // Thresholds could be percentage based or absolute value. 
+    // Let's use 5% or 1000 KRW as a simple significant threshold?
+    // Existing logic used 500 unit diff? Let's stick to simple logic or refine.
+    // Let's use the totalDiff.
+
+    if (totalDiff <= -100) status = "BEST"; // Saved at least 100 won
+    else if (totalDiff >= 100) status = "BAD"; // Paid at least 100 won more
     else status = "GOOD";
 
     return {
         cheapestSource: bestMatch.source,
         price: marketPrice,
         status: status,
-        diff: diff,
+        diff: diff, // Keeping unit-based diff for compatibility if needed, OR we can deprecate it.
+
+        // [New Fields for UI]
+        totalDiff: totalDiff, // Raw value
+        marketUnit: lowerUnit, // The unit used for calculation (e.g. 'kg')
+        marketUnitPrice: naverUnitPrice, // Standardized Unit Price (e.g. 4,900)
+        marketTotalForUserAmount: marketTotalForUserAmount, // 24,500
+
         link: bestMatch.link,
         cheapestLink: bestMatch.link,
         marketDataRaw: bestMatch,

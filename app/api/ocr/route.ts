@@ -272,13 +272,27 @@ export async function POST(request: Request) {
             }
 
             // Create specific insight for significant differences
-            if (marketAnalysis && Math.abs(marketAnalysis.diff) > 1000) {
-                const diff = Math.round(marketAnalysis.diff);
-                if (diff > 0) {
-                    businessReport.push(`📉 ${cleanName}: 평소보다 ${diff.toLocaleString()}원 비싸게 구매하셨어요. 다음엔 ${marketAnalysis.cheapestSource} 확인해보세요!`);
+            // Create specific insight for significant differences
+            if (marketAnalysis && Math.abs(marketAnalysis.totalDiff) > 100) {
+                const diff = Math.round(marketAnalysis.totalDiff);
+                const isLoss = diff > 0;
+                const costDiff = Math.abs(diff).toLocaleString();
+
+                // Context: "5kg 기준" or just "구매량 기준"
+                const amountCtx = item.amount && item.unit ? `${item.amount}${item.unit} 기준` : '구매량 기준';
+
+                if (isLoss) {
+                    businessReport.push(`📉 ${cleanName}: 시장가보다 ${costDiff}원 더 비싸게 구매하셨어요. (${amountCtx}) 다음엔 ${marketAnalysis.cheapestSource} 확인해보세요!`);
+                    totalLoss += diff;
                 } else {
-                    businessReport.push(`🎉 ${cleanName}: ${Math.abs(diff).toLocaleString()}원이나 저렴하게 득템하셨네요! (시장가 대비)`);
+                    businessReport.push(`🎉 ${cleanName}: 시장가보다 ${costDiff}원 저렴하게 득템하셨네요! (${amountCtx})`);
+                    totalSavings += Math.abs(diff);
                 }
+            } else if (marketAnalysis) {
+                // Neutral/Small diff
+                const diff = Math.round(marketAnalysis.totalDiff);
+                if (diff > 0) totalLoss += diff;
+                else totalSavings += Math.abs(diff);
             }
 
 

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X, TrendingUp } from "lucide-react";
+import { Trash2, ArrowRight, ArrowUpDown, Clock, SortAsc, SortDesc, Loader2, CheckSquare, Square, X, Search, RotateCcw, TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react";
 import { getIngredientIcon, convertPriceForDisplay, formatIngredientName } from "@/app/lib/utils";
 import { deleteIngredient, refreshIngredientPrice, bulkDeleteIngredients } from "@/app/ingredients/actions";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -448,10 +448,56 @@ export default function IngredientList({ initialIngredients }: Props) {
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap ${currentDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                                                {currentDiff > 0 ? `+${Math.round(currentDiff).toLocaleString()}` : `${Math.round(currentDiff).toLocaleString()}`}
-                                                            </span>
                                                         </div>
+
+                                                        {/* [Price Comparison Logic Refinement] */}
+                                                        {marketData && (
+                                                            <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <span className="text-xs font-bold text-gray-500">시장 최저가 ({marketData.cheapestSource})</span>
+                                                                    <a href={marketData.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 underline flex items-center">
+                                                                        확인하기 <ExternalLink className="h-3 w-3 ml-0.5" />
+                                                                    </a>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2">
+                                                                    {/* Market Unit Price */}
+                                                                    <span className="text-sm font-medium text-gray-700">
+                                                                        {marketData.price.toLocaleString()}원
+                                                                        <span className="text-xs text-gray-400 font-normal">
+                                                                            {/* Try to show unit if possible, but marketDataRaw might not be fully transparent here unless we passed it. 
+                                                                                We can infer from context or just leave it simple. 
+                                                                            */}
+                                                                            {item.unit ? ` / ${item.unit}` : ''} (추정)
+                                                                        </span>
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Total Diff Display */}
+                                                                {marketData.totalDiff !== undefined && (
+                                                                    <div className={`mt-2 text-sm font-bold flex items-center gap-1 ${marketData.totalDiff > 0 ? "text-red-500" : "text-blue-600"}`}>
+                                                                        {marketData.totalDiff > 0 ? (
+                                                                            <>
+                                                                                <div className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs">📉 손해</div>
+                                                                                <span>{Math.abs(Math.round(marketData.totalDiff)).toLocaleString()}원 더 비쌈</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs">🎉 이득</div>
+                                                                                <span>{Math.abs(Math.round(marketData.totalDiff)).toLocaleString()}원 절약</span>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Context Explanation */}
+                                                                {marketData.marketTotalForUserAmount && (
+                                                                    <p className="text-[10px] text-gray-400 mt-1">
+                                                                        * 시장가 기준 {item.prices[0]?.amount || 1}{item.unit} 환산 시 약 {Math.round(marketData.marketTotalForUserAmount).toLocaleString()}원
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
 
                                                         <div className="flex items-baseline justify-between gap-2 overflow-hidden">
                                                             <a
