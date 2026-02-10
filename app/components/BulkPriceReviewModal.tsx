@@ -10,7 +10,12 @@ type MarketAnalysis = {
     cheapestSource: string;
     price: number;
     status: "BEST" | "GOOD" | "BAD";
-    diff: number;
+    desc?: string;
+    link?: string;
+    totalDiff?: number;
+    marketUnit?: string;
+    marketUnitPrice?: number;
+    marketTotalForUserAmount?: number;
 };
 
 type OCRItem = {
@@ -287,38 +292,59 @@ export default function BulkPriceReviewModal({ isOpen, onClose, items, ingredien
                                     </div>
 
                                     <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 mt-3 sm:mt-0">
-                                        {/* Market Badge (Redesigned) */}
-                                        {item.marketAnalysis ? (
-                                            <div className="w-full sm:w-auto mt-2 sm:mt-0 p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-end gap-1">
+                                        <div className="w-full sm:w-auto mt-2 sm:mt-0 p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col gap-1 min-w-[200px]">
+                                            <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="flex h-4 w-4 items-center justify-center rounded bg-[#03C75A] text-[9px] font-black text-white">N</span>
-                                                    {(item.marketAnalysis as any).link ? (
-                                                        <a
-                                                            href={(item.marketAnalysis as any).link}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-xs text-blue-500 underline truncate max-w-[100px] hover:text-blue-700"
-                                                        >
-                                                            {item.marketAnalysis.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
-                                                        </a>
-                                                    ) : (
-                                                        <span className="text-xs text-gray-400 truncate max-w-[100px]">
-                                                            {item.marketAnalysis.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-sm font-black ${item.marketAnalysis.diff > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                        {item.marketAnalysis.diff > 0 ? '+' : ''}{item.marketAnalysis.diff.toLocaleString()}원
+                                                    <span className="text-sm font-bold text-gray-800">
+                                                        {item.marketAnalysis.cheapestSource.replace("네이버최저가(", "").replace(")", "")}
                                                     </span>
-                                                    <span className="text-xs text-black font-bold">
-                                                        ({item.marketAnalysis.price.toLocaleString()}원)
-                                                    </span>
-
                                                 </div>
                                             </div>
+
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <span className="font-bold text-gray-900 text-lg">
+                                                    {item.marketAnalysis.marketTotalForUserAmount
+                                                        ? item.marketAnalysis.marketTotalForUserAmount.toLocaleString()
+                                                        : item.marketAnalysis.price.toLocaleString()}원
+                                                </span>
+                                                <span className="text-gray-300">|</span>
+                                                <span className="text-gray-500 font-medium whitespace-nowrap">
+                                                    {item.marketAnalysis.marketUnitPrice
+                                                        ? `${Math.round(item.marketAnalysis.marketUnitPrice).toLocaleString()}원`
+                                                        : `${item.marketAnalysis.price.toLocaleString()}원`}
+                                                    <span className="text-xs text-gray-400 font-normal ml-0.5">({item.unit}당)</span>
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center justify-between mt-1">
+                                                {(item.marketAnalysis as any).link ? (
+                                                    <a
+                                                        href={(item.marketAnalysis as any).link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-[11px] text-gray-400 underline hover:text-blue-500"
+                                                    >
+                                                        상품 보러가기
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-[11px] text-gray-300">링크 없음</span>
+                                                )}
+
+                                                {/* Diff Display: Loss/Profit */}
+                                                {item.marketAnalysis.totalDiff !== undefined && (
+                                                    <div className="flex items-center gap-1 font-bold text-base">
+                                                        {item.marketAnalysis.totalDiff > 0 ? (
+                                                            <span className="text-red-500 flex items-center gap-1">손해 {item.marketAnalysis.totalDiff.toLocaleString()}원</span>
+                                                        ) : (
+                                                            <span className="text-blue-600 flex items-center gap-1">이익 {Math.abs(item.marketAnalysis.totalDiff).toLocaleString()}원</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                         ) : (
-                                            <span className="text-[10px] text-gray-300">데이터 없음</span>
+                                        <span className="text-[10px] text-gray-300">데이터 없음</span>
                                         )}
 
                                         <div className="flex items-center gap-1">
