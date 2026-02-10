@@ -325,7 +325,7 @@ export const generateBusinessReport = (items: any[]) => {
                         businessReport.push(`🔴 ${item.name}: 시장가보다 ${costDiff}원 더 비싸게 구매하셨어요. (${amountCtx})`);
                         totalLoss += diff;
                     } else if (Math.abs(diff) > 5000 || (item.originalPrice > 0 && Math.abs(diff) / item.originalPrice > 0.2)) {
-                        businessReport.push(`💎 ${item.name}: 시장가보다 무려 ${costDiff}원이나 저렴하게 득템하셨네요! (${amountCtx})`);
+                        businessReport.push(`✨💎✨ ${item.name}: 시장가보다 무려 ${costDiff}원이나 저렴하게 득템하셨네요! (${amountCtx})`);
                         totalSavings += Math.abs(diff);
                     } else {
                         businessReport.push(`🔵 ${item.name}: 시장가보다 ${costDiff}원 저렴하게 잘 구매하셨어요. (${amountCtx})`);
