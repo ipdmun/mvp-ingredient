@@ -5,6 +5,7 @@ import { authOptions } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import { Wallet, TrendingDown, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { getMarketAnalysis } from "@/app/lib/naver";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +38,8 @@ export default async function DashboardPage() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const rows = ingredients.map((ingredient) => {
+    // Calculate savings for each ingredient based on Market Analysis
+    const rows = await Promise.all(ingredients.map(async (ingredient) => {
         const monthlyPrices = ingredient.prices.filter(
             (p: any) => p.recordedAt >= startOfMonth
         );
@@ -51,22 +53,36 @@ export default async function DashboardPage() {
             };
         }
 
-        const sum = monthlyPrices.reduce((acc: number, p: any) => acc + p.price, 0);
-        const avg = sum / monthlyPrices.length;
-        const min = Math.min(...monthlyPrices.map((p: any) => p.price));
+        let ingredientSavings = 0;
 
-        // @ts-ignore
-        const monthlyUsage = ingredient.monthlyUsage ?? 10;
+        for (const p of monthlyPrices) {
+            // Calculate User Total Price and Amount
+            // If totalPrice/amount is missing, derive from unit price (fallback)
+            const amount = p.amount || 1;
+            const userTotal = p.totalPrice || (p.price * amount);
 
-        const savings = Math.floor(Math.max((avg - min) * monthlyUsage, 0));
+            try {
+                const analysis = await getMarketAnalysis(ingredient.name, userTotal, ingredient.unit, amount);
+                if (analysis) {
+                    // totalDiff = UserPrice - MarketPrice
+                    // If totalDiff < 0, User Saved (Paid Less). Savings = -totalDiff.
+                    // If totalDiff > 0, User Lost. Savings = 0 (or we could track loss).
+                    if (analysis.totalDiff < 0) {
+                        ingredientSavings += Math.abs(analysis.totalDiff);
+                    }
+                }
+            } catch (err) {
+                console.error(`Market Analysis Error for ${ingredient.name}:`, err);
+            }
+        }
 
         return {
             id: ingredient.id,
             name: ingredient.name,
-            savings,
+            savings: ingredientSavings,
             unit: ingredient.unit,
         };
-    });
+    }));
 
     const totalSavings = rows.reduce((acc: number, r: any) => acc + r.savings, 0);
 
