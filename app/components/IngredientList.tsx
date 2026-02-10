@@ -418,7 +418,7 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             )}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <div className="block font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate" title={formatIngredientName(item.name)}>
+                                            <div className="block font-black text-gray-900 group-hover:text-blue-600 transition-colors text-lg sm:text-xl" title={formatIngredientName(item.name)}>
                                                 {formatIngredientName(item.name)}
                                             </div>
                                         </div>
@@ -428,18 +428,16 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             {/* Purchase History Section */}
                                             <div className="flex flex-col items-end gap-1">
                                                 {item.prices.slice(0, 2).map((p, idx) => (
-                                                    <div key={idx} className="flex items-center gap-1.5">
-                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${idx === 0
-                                                                ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                                                : 'bg-gray-50 text-gray-400 border-gray-100'
+                                                    <div key={idx} className="flex items-center gap-2">
+                                                        <p className={`font-black whitespace-nowrap leading-none ${idx === 0
+                                                                ? 'text-sm sm:text-base text-blue-600'
+                                                                : 'text-[10px] sm:text-[11px] text-gray-400'
                                                             }`}>
-                                                            {idx === 0 ? '최근 구매' : '이전 구매'}
-                                                        </span>
-                                                        <p className={`text-[10px] sm:text-[11px] font-black whitespace-nowrap leading-tight ${idx === 0 ? 'text-blue-600' : 'text-gray-400'}`}>
                                                             {p.amount ? formatAmount(p.amount, p.unit) : ''}
                                                             {' '}
                                                             {p.totalPrice ? `${p.totalPrice.toLocaleString()}원` : ''}
-                                                            <span className={`text-[9px] sm:text-[10px] ml-1 font-medium ${idx === 0 ? 'opacity-80' : 'opacity-60'}`}>
+                                                            <span className={`font-medium ml-1 ${idx === 0 ? 'text-[10px] sm:text-[11px] opacity-80' : 'text-[9px] sm:text-[10px] opacity-60'
+                                                                }`}>
                                                                 ({Math.round(convertPriceForDisplay(p.price, p.unit, displayUnit)).toLocaleString()}원/{displayUnit})
                                                             </span>
                                                         </p>
