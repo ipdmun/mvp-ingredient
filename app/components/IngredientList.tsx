@@ -423,30 +423,31 @@ export default function IngredientList({ initialIngredients }: Props) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right shrink-0 min-w-[100px]">
-                                        <div className="flex flex-col items-end">
-                                            <p className="text-lg sm:text-xl font-black text-gray-900 truncate w-full">
-                                                {latest > 0
-                                                    ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', displayUnit)).toLocaleString()}원/${displayUnit}`
-                                                    : "기록 없음"
-                                                }
-                                            </p>
-
-                                            {/* Recent History Detail */}
+                                    <div className="text-right shrink-0 min-w-[150px]">
+                                        <div className="flex flex-col items-end gap-1">
+                                            {/* Recent History Detail - Priority 1 */}
                                             {latestPrice && (
-                                                <div className="mt-1 flex flex-col items-end gap-0.5">
-                                                    <p className="text-[10px] text-gray-400 font-medium">
-                                                        {formatDate(latestPrice.recordedAt)}
-                                                        {' '}
+                                                <p className="text-[11px] text-gray-900 font-bold whitespace-nowrap">
+                                                    {formatDate(latestPrice.recordedAt)}일 구매 내역 : {' '}
+                                                    <span className="text-blue-600">
                                                         {latestPrice.amount ? formatAmount(latestPrice.amount, latestPrice.unit) : ''}
                                                         {' '}
                                                         {latestPrice.totalPrice ? `${latestPrice.totalPrice.toLocaleString()}원` : ''}
-                                                    </p>
-                                                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">
                                                         ({Math.round(convertPriceForDisplay(latestPrice.price, latestPrice.unit, displayUnit)).toLocaleString()}원/{displayUnit})
-                                                    </p>
-                                                </div>
+                                                    </span>
+                                                </p>
                                             )}
+
+                                            {/* Unit Price Title - Priority 2 */}
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-[10px] text-gray-400 font-bold bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">최근 1달 단가</span>
+                                                <p className="text-base sm:text-lg font-black text-gray-900">
+                                                    {latest > 0
+                                                        ? `${Math.round(convertPriceForDisplay(latest, item.prices[0]?.unit || 'g', displayUnit)).toLocaleString()}원/${displayUnit}`
+                                                        : "기록 없음"
+                                                    }
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
