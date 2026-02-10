@@ -322,10 +322,13 @@ export const generateBusinessReport = (items: any[]) => {
 
                 if (Math.abs(diff) > 100) {
                     if (isLoss) {
-                        businessReport.push(`📉 ${item.name}: 시장가보다 ${costDiff}원 더 비싸게 구매하셨어요. (${amountCtx})`);
+                        businessReport.push(`🔴 ${item.name}: 시장가보다 ${costDiff}원 더 비싸게 구매하셨어요. (${amountCtx})`);
                         totalLoss += diff;
+                    } else if (Math.abs(diff) > 5000 || (item.originalPrice > 0 && Math.abs(diff) / item.originalPrice > 0.2)) {
+                        businessReport.push(`💎 ${item.name}: 시장가보다 무려 ${costDiff}원이나 저렴하게 득템하셨네요! (${amountCtx})`);
+                        totalSavings += Math.abs(diff);
                     } else {
-                        businessReport.push(`🎉 ${item.name}: 시장가보다 ${costDiff}원 저렴하게 득템하셨네요! (${amountCtx})`);
+                        businessReport.push(`🔵 ${item.name}: 시장가보다 ${costDiff}원 저렴하게 잘 구매하셨어요. (${amountCtx})`);
                         totalSavings += Math.abs(diff);
                     }
                 } else {
@@ -345,13 +348,13 @@ export const generateBusinessReport = (items: any[]) => {
         finalReport.push(`❓ 분석 가능한 식자재가 없습니다. (시장 데이터 부족)`);
         finalReport.push(`직접 단가를 입력하여 정확한 분석을 받아보세요.`);
     } else if (netSavings > 0) {
-        finalReport.push(`💰 사장님! 이번 장보기로 ${Math.round(netSavings).toLocaleString()}원을 아끼셨네요!`);
+        finalReport.push(`🔵 사장님! 이번 장보기로 ${Math.round(netSavings).toLocaleString()}원을 아끼셨네요!`);
         finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 저렴하며, 한 달이면 약 ${Math.round(monthlyProjection).toLocaleString()}원을 절약하실 수 있어요.`);
     } else if (netSavings < 0) {
-        finalReport.push(`💡 사장님! 이번엔 평소보다 ${Math.round(Math.abs(netSavings)).toLocaleString()}원 더 지출하셨어요.`);
+        finalReport.push(`🔴 사장님! 이번엔 평소보다 ${Math.round(Math.abs(netSavings)).toLocaleString()}원 더 지출하셨어요.`);
         finalReport.push(`평균가 대비 약 ${percentage.toFixed(1)}% 비싸며, 최저가 구매 시 한 달에 약 ${Math.round(monthlyProjection).toLocaleString()}원을 아낄 수 있어요!`);
     } else {
-        finalReport.push(`✅ 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
+        finalReport.push(`🟠 합리적인 소비를 하셨군요! 시장 평균 가격과 비슷합니다.`);
     }
 
     finalReport.push(...businessReport);
